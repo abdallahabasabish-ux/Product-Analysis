@@ -3,7 +3,7 @@
 // ================================================================
 
 // 🔴 هام: استبدل هذا الرابط برابط Web App الخاص بك بعد النشر
-const API_BASE_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxEwdUmc-Cyi0AkxHqTIUwqp-XrcNi0R4tn52kHmMNCE5D1F4gl6vqd3jlR2kzxCkr8gQ/exec';
 
 const TOKEN_KEY = 'blogpush_session_token';
 const USER_KEY = 'blogpush_user_data';
