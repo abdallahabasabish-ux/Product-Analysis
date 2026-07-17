@@ -1,6 +1,6 @@
 /**
  * websites.js – إدارة المواقع مع قراءة/كتابة من Firestore
- * الإصدار: 2.3.0 (مع تحسين معالجة الأخطاء)
+ * الإصدار: 2.4.0 (تم إزالة orderBy لتجنب الفهرس المركب)
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // ==========================================================
-  // 3. تحميل المواقع من Firestore مع إعادة المحاولة
+  // 3. تحميل المواقع من Firestore (بدون orderBy لتجنب الفهرس)
   // ==========================================================
   async function loadWebsites(userId, retryCount = 0) {
     try {
@@ -74,15 +74,21 @@ document.addEventListener('DOMContentLoaded', function() {
         throw new Error('Firestore غير مهيأ');
       }
 
-      // تأكد من أن المجموعة موجودة
+      // 🔥 تمت إزالة orderBy لتجنب الحاجة إلى فهرس مركب
       const snapshot = await window.db.collection('websites')
         .where('userId', '==', userId)
-        .orderBy('createdAt', 'desc')
         .get();
 
       websitesData = [];
       snapshot.forEach(doc => {
         websitesData.push({ id: doc.id, ...doc.data() });
+      });
+
+      // ترتيب البيانات في الذاكرة (الأحدث أولاً)
+      websitesData.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        return dateB - dateA;
       });
 
       renderWebsites();
