@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
         throw new Error('Firestore غير مهيأ');
       }
 
-      // 🔥 تمت إزالة orderBy لتجنب الحاجة إلى فهرس مركب
+      // ✅ تمت إزالة orderBy لتجنب الحاجة إلى فهرس مركب
       const snapshot = await window.db.collection('websites')
         .where('userId', '==', userId)
         .get();
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
         websitesData.push({ id: doc.id, ...doc.data() });
       });
 
-      // ترتيب البيانات في الذاكرة (الأحدث أولاً)
+      // ✅ ترتيب البيانات في الذاكرة (الأحدث أولاً)
       websitesData.sort((a, b) => {
         const dateA = a.createdAt?.toDate?.() || new Date(0);
         const dateB = b.createdAt?.toDate?.() || new Date(0);
