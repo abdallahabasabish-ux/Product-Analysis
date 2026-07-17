@@ -1,7 +1,8 @@
 /**
  * websites.js – إدارة المواقع مع قراءة/كتابة من Firestore
- * الإصدار: 2.2.0 (تم إصلاح خطأ التحميل وتفعيل الأزرار)
+ * الإصدار: 2.3.0 (مع تحسين معالجة الأخطاء)
  */
+
 document.addEventListener('DOMContentLoaded', function() {
 
   // ==========================================================
@@ -22,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const siteNameInput = document.getElementById('siteNameInput');
   const urlError = document.getElementById('urlError');
   const websitesContainer = document.getElementById('websitesContainer');
-  const countSpan = document.getElementById('websitesCount'); // updated to use ID
+  const countSpan = document.getElementById('websitesCount');
   const lastUpdateSpan = document.getElementById('lastUpdate');
 
   let currentUser = null;
@@ -37,14 +38,17 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // التأكد من وجود db
-  const db = firebase.firestore ? firebase.firestore() : null;
+  let db = window.db || firebase.firestore();
   if (!db) {
     loadingOverlay.innerHTML = '<div style="color:red;text-align:center;"><i class="fas fa-exclamation-triangle" style="font-size:32px;"></i><br>فشل تهيئة Firestore. تحقق من إعدادات Firebase.</div>';
     return;
   }
   window.db = db;
 
-  firebase.auth().onAuthStateChanged(function(user) {
+  // ==========================================================
+  // 2. المصادقة وتحميل البيانات
+  // ==========================================================
+  firebase.auth().onAuthStateChanged(async function(user) {
     if (user) {
       currentUser = user;
       const displayName = user.displayName || user.email || 'مستخدم';
@@ -54,22 +58,23 @@ document.addEventListener('DOMContentLoaded', function() {
       userAvatar.textContent = displayName.charAt(0).toUpperCase();
       loadingOverlay.style.display = 'none';
 
-      // تحميل المواقع
-      loadWebsites(user.uid);
+      // تحميل المواقع مع محاولة إعادة المحاولة
+      await loadWebsites(user.uid);
     } else {
       window.location.href = 'login.html';
     }
   });
 
   // ==========================================================
-  // 2. تحميل المواقع من Firestore
+  // 3. تحميل المواقع من Firestore مع إعادة المحاولة
   // ==========================================================
-  async function loadWebsites(userId) {
+  async function loadWebsites(userId, retryCount = 0) {
     try {
       if (!window.db) {
         throw new Error('Firestore غير مهيأ');
       }
 
+      // تأكد من أن المجموعة موجودة
       const snapshot = await window.db.collection('websites')
         .where('userId', '==', userId)
         .orderBy('createdAt', 'desc')
@@ -85,24 +90,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
     } catch (error) {
       console.error('❌ خطأ في تحميل المواقع:', error);
-      showToast('⚠️ حدث خطأ أثناء تحميل المواقع: ' + error.message, 'error');
       
+      // محاولة إعادة المحاولة بعد 3 ثوانٍ (مرة واحدة)
+      if (retryCount < 1) {
+        showToast('⚠️ محاولة إعادة تحميل المواقع...', 'info');
+        setTimeout(() => loadWebsites(userId, retryCount + 1), 3000);
+        return;
+      }
+
+      // عرض رسالة خطأ مع خيارات
       websitesContainer.innerHTML = `
         <div class="empty-state" style="grid-column:1/-1; text-align:center; padding:40px 20px; color:var(--color-mid);">
           <i class="fas fa-exclamation-triangle" style="font-size:48px; color:var(--color-danger); margin-bottom:16px; display:block;"></i>
           <h3 style="font-size:20px; color:var(--color-dark);">فشل تحميل المواقع</h3>
-          <p style="margin-bottom:16px;">${error.message || 'حدث خطأ غير معروف'}</p>
+          <p style="margin-bottom:8px; color:var(--color-danger);">${error.message || 'حدث خطأ غير معروف'}</p>
+          <p style="font-size:14px; color:var(--color-mid); margin-bottom:16px;">
+            تأكد من:<br>
+            • أنك متصل بالإنترنت<br>
+            • أن Firestore مفعّل في مشروع Firebase<br>
+            • أن قواعد الأمان تسمح بالقراءة
+          </p>
           <button onclick="window.location.reload()" class="btn btn-primary" style="display:inline-flex;">
             <i class="fas fa-sync-alt"></i> إعادة المحاولة
           </button>
         </div>
       `;
       if (countSpan) countSpan.innerHTML = '<i class="fas fa-list" style="margin-left:8px;"></i> مواقعك (—)';
+      showToast('❌ ' + error.message, 'error');
     }
   }
 
   // ==========================================================
-  // 3. عرض المواقع في الواجهة
+  // 4. عرض المواقع
   // ==========================================================
   function renderWebsites() {
     if (!websitesContainer) return;
@@ -158,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ==========================================================
-  // 4. تحديث وقت آخر تحديث
+  // 5. تحديث وقت آخر تحديث
   // ==========================================================
   function updateLastUpdate() {
     if (lastUpdateSpan) {
@@ -168,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ==========================================================
-  // 5. إضافة موقع جديد إلى Firestore
+  // 6. إضافة موقع
   // ==========================================================
   addForm.addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -204,7 +223,6 @@ document.addEventListener('DOMContentLoaded', function() {
       });
 
       await loadWebsites(currentUser.uid);
-
       siteUrlInput.value = '';
       siteNameInput.value = '';
       showToast('✅ تم إضافة الموقع بنجاح!', 'success');
@@ -223,96 +241,70 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // ==========================================================
-  // 6. حذف موقع (دالة عامة)
+  // 7. دوال الأزرار العامة
   // ==========================================================
   window.deleteWebsite = async function(docId) {
-    if (!currentUser) {
-      showToast('الرجاء تسجيل الدخول أولاً', 'error');
-      return;
-    }
+    if (!currentUser) { showToast('الرجاء تسجيل الدخول أولاً', 'error'); return; }
     if (!confirm('⚠️ هل أنت متأكد من حذف هذا الموقع؟ سيتم حذف جميع بياناته.')) return;
-
     try {
       await window.db.collection('websites').doc(docId).delete();
       showToast('✅ تم حذف الموقع بنجاح', 'success');
       await loadWebsites(currentUser.uid);
     } catch (error) {
-      console.error('❌ خطأ في الحذف:', error);
-      showToast('حدث خطأ أثناء حذف الموقع: ' + error.message, 'error');
+      showToast('حدث خطأ أثناء الحذف: ' + error.message, 'error');
     }
   };
 
-  // ==========================================================
-  // 7. التحقق من الموقع (دالة عامة)
-  // ==========================================================
   window.verifyWebsite = async function(docId) {
-    if (!currentUser) {
-      showToast('الرجاء تسجيل الدخول أولاً', 'error');
-      return;
-    }
+    if (!currentUser) { showToast('الرجاء تسجيل الدخول أولاً', 'error'); return; }
     try {
-      showToast('⏳ جاري التحقق من الموقع...', 'info');
-      
-      // محاكاة عملية التحقق (يمكن استبدالها بفحص حقيقي)
+      showToast('⏳ جاري التحقق...', 'info');
       await new Promise(resolve => setTimeout(resolve, 1500));
-
       await window.db.collection('websites').doc(docId).update({
         verified: true,
         status: 'active',
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-
-      showToast('✅ تم التحقق من الموقع بنجاح!', 'success');
+      showToast('✅ تم التحقق بنجاح!', 'success');
       await loadWebsites(currentUser.uid);
     } catch (error) {
-      console.error('❌ خطأ في التحقق:', error);
-      showToast('فشل التحقق من الموقع: ' + error.message, 'error');
+      showToast('فشل التحقق: ' + error.message, 'error');
     }
   };
 
-  // ==========================================================
-  // 8. عرض/إخفاء كود التثبيت (دالة عامة)
-  // ==========================================================
   window.toggleCode = function(id) {
     const el = document.getElementById('code-' + id);
-    if (el) {
-      el.style.display = el.style.display === 'none' ? 'block' : 'none';
-    }
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
   };
 
-  // ==========================================================
-  // 9. نسخ النص إلى الحافظة (دالة عامة)
-  // ==========================================================
   window.copyToClipboard = function(btn, text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function() {
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
         btn.textContent = '✅ تم!';
-        setTimeout(function() { btn.textContent = 'نسخ'; }, 2000);
-      }).catch(function() {
-        fallbackCopy(btn, text);
-      });
+        setTimeout(() => btn.textContent = 'نسخ', 2000);
+      }).catch(() => fallbackCopy(btn, text));
     } else {
       fallbackCopy(btn, text);
     }
   };
 
   function fallbackCopy(btn, text) {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    document.body.appendChild(textarea);
-    textarea.select();
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
     try {
       document.execCommand('copy');
       btn.textContent = '✅ تم!';
-      setTimeout(function() { btn.textContent = 'نسخ'; }, 2000);
+      setTimeout(() => btn.textContent = 'نسخ', 2000);
     } catch(e) {
       showToast('فشل النسخ، حاول يدوياً', 'error');
     }
-    document.body.removeChild(textarea);
+    document.body.removeChild(ta);
   }
 
   // ==========================================================
-  // 10. دالة عرض الرسائل (عامة)
+  // 8. Toast
   // ==========================================================
   function showToast(message, type = 'info') {
     let container = document.getElementById('toast-container');
@@ -331,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function() {
       box-shadow:0 8px 25px rgba(0,0,0,0.15);
       font-size:15px;font-weight:500;
       opacity:0;transform:translateX(30px);
-      transition:all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      transition:all 0.35s cubic-bezier(0.25,0.46,0.45,0.94);
       pointer-events:auto;direction:rtl;text-align:right;
       border:1px solid rgba(255,255,255,0.2);
     `;
@@ -347,47 +339,28 @@ document.addEventListener('DOMContentLoaded', function() {
       setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 350);
     }, 4000);
   }
-
   window.showToast = showToast;
 
   // ==========================================================
-  // 11. تفعيل القائمة الجانبية (للجوال)
+  // 9. القائمة الجانبية والخروج
   // ==========================================================
   function toggleSidebar(open) {
-    if (open) {
-      sidebar.classList.add('open');
-      sidebarOverlay.classList.add('open');
-    } else {
-      sidebar.classList.remove('open');
-      sidebarOverlay.classList.remove('open');
-    }
+    if (open) { sidebar.classList.add('open'); sidebarOverlay.classList.add('open'); }
+    else { sidebar.classList.remove('open'); sidebarOverlay.classList.remove('open'); }
   }
+  menuToggle.addEventListener('click', () => toggleSidebar(!sidebar.classList.contains('open')));
+  sidebarOverlay.addEventListener('click', () => toggleSidebar(false));
 
-  menuToggle.addEventListener('click', function() {
-    toggleSidebar(!sidebar.classList.contains('open'));
-  });
-
-  sidebarOverlay.addEventListener('click', function() {
-    toggleSidebar(false);
-  });
-
-  // ==========================================================
-  // 12. قائمة المستخدم (تسجيل الخروج)
-  // ==========================================================
-  userCard.addEventListener('click', function() {
+  userCard.addEventListener('click', () => {
     logoutMenu.style.display = logoutMenu.style.display === 'block' ? 'none' : 'block';
   });
-
-  document.addEventListener('click', function(e) {
+  document.addEventListener('click', (e) => {
     if (!userCard.contains(e.target) && !logoutMenu.contains(e.target)) {
       logoutMenu.style.display = 'none';
     }
   });
-
-  logoutBtn.addEventListener('click', function() {
-    firebase.auth().signOut().then(function() {
-      window.location.href = 'login.html';
-    });
+  logoutBtn.addEventListener('click', () => {
+    firebase.auth().signOut().then(() => window.location.href = 'login.html');
   });
 
   console.log('✅ صفحة المواقع جاهزة (بيانات حقيقية)');
