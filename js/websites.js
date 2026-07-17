@@ -1,6 +1,6 @@
 /**
  * websites.js – إدارة المواقع مع قراءة/كتابة من Firestore
- * الإصدار: 2.0.0 (نهائي)
+ * الإصدار: 2.1.0 (تم إصلاح الأزرار)
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
+  // جعل db متاحاً عالمياً
+  window.db = firebase.firestore();
+
   firebase.auth().onAuthStateChanged(function(user) {
     if (user) {
       currentUser = user;
@@ -58,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // ==========================================================
   async function loadWebsites(userId) {
     try {
-      const snapshot = await db.collection('websites')
+      const snapshot = await window.db.collection('websites')
         .where('userId', '==', userId)
         .orderBy('createdAt', 'desc')
         .get();
@@ -95,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     let html = '';
-    websitesData.forEach((site, index) => {
+    websitesData.forEach((site) => {
       const statusClass = site.verified ? 'verified' : (site.status === 'pending' ? 'pending' : 'failed');
       const statusText = site.verified ? 'موثق' : (site.status === 'pending' ? 'قيد الانتظار' : 'فشل التحقق');
       const statusIcon = site.verified ? 'fa-check-circle' : (site.status === 'pending' ? 'fa-clock' : 'fa-times-circle');
@@ -116,13 +119,13 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="stat-item"><span class="number">${site.ctr || '—'}</span> <span class="label">نسبة النقر</span></div>
           </div>
           <div class="site-actions">
-            <button class="btn-sm" onclick="toggleCode('${site.id}')"><i class="fas fa-code"></i> كود التثبيت</button>
-            <button class="btn-sm" onclick="verifyWebsite('${site.id}')"><i class="fas fa-shield-alt"></i> تحقق</button>
-            <button class="btn-sm danger" onclick="deleteWebsite('${site.id}')"><i class="fas fa-trash-alt"></i> حذف</button>
+            <button class="btn-sm" onclick="window.toggleCode('${site.id}')"><i class="fas fa-code"></i> كود التثبيت</button>
+            <button class="btn-sm" onclick="window.verifyWebsite('${site.id}')"><i class="fas fa-shield-alt"></i> تحقق</button>
+            <button class="btn-sm danger" onclick="window.deleteWebsite('${site.id}')"><i class="fas fa-trash-alt"></i> حذف</button>
           </div>
           <div id="code-${site.id}" class="code-snippet" style="display:none;">
             &lt;script src="https://cdn.blogpush.com/sdk.js" data-site-id="${siteId}"&gt;&lt;/script&gt;
-            <button class="copy-btn" onclick="copyToClipboard(this, '&lt;script src=&quot;https://cdn.blogpush.com/sdk.js&quot; data-site-id=&quot;${siteId}&quot;&gt;&lt;/script&gt;')">نسخ</button>
+            <button class="copy-btn" onclick="window.copyToClipboard(this, '&lt;script src=&quot;https://cdn.blogpush.com/sdk.js&quot; data-site-id=&quot;${siteId}&quot;&gt;&lt;/script&gt;')">نسخ</button>
           </div>
         </div>
       `;
@@ -154,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const siteId = Math.random().toString(36).substring(2, 10).toUpperCase();
       const secretKey = Math.random().toString(36).substring(2, 34);
 
-      await db.collection('websites').add({
+      await window.db.collection('websites').add({
         userId: currentUser.uid,
         siteUrl: url,
         siteName: name,
@@ -168,7 +171,6 @@ document.addEventListener('DOMContentLoaded', function() {
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      // إعادة تحميل القائمة
       await loadWebsites(currentUser.uid);
 
       siteUrlInput.value = '';
@@ -189,31 +191,40 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // ==========================================================
-  // 5. حذف موقع
+  // 5. حذف موقع (دالة عامة)
   // ==========================================================
   window.deleteWebsite = async function(docId) {
-    if (!confirm('هل أنت متأكد من حذف هذا الموقع؟ سيتم حذف جميع بياناته.')) return;
+    if (!currentUser) {
+      showToast('الرجاء تسجيل الدخول أولاً', 'error');
+      return;
+    }
+    if (!confirm('⚠️ هل أنت متأكد من حذف هذا الموقع؟ سيتم حذف جميع بياناته.')) return;
 
     try {
-      await db.collection('websites').doc(docId).delete();
+      await window.db.collection('websites').doc(docId).delete();
       showToast('✅ تم حذف الموقع بنجاح', 'success');
       await loadWebsites(currentUser.uid);
     } catch (error) {
       console.error('❌ خطأ في الحذف:', error);
-      showToast('حدث خطأ أثناء حذف الموقع', 'error');
+      showToast('حدث خطأ أثناء حذف الموقع: ' + error.message, 'error');
     }
   };
 
   // ==========================================================
-  // 6. التحقق من الموقع (محاكاة)
+  // 6. التحقق من الموقع (دالة عامة)
   // ==========================================================
   window.verifyWebsite = async function(docId) {
+    if (!currentUser) {
+      showToast('الرجاء تسجيل الدخول أولاً', 'error');
+      return;
+    }
     try {
       showToast('⏳ جاري التحقق من الموقع...', 'info');
-      // محاكاة عملية التحقق
+      
+      // محاكاة عملية التحقق (يمكن استبدالها بفحص حقيقي)
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      await db.collection('websites').doc(docId).update({
+      await window.db.collection('websites').doc(docId).update({
         verified: true,
         status: 'active',
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -223,12 +234,12 @@ document.addEventListener('DOMContentLoaded', function() {
       await loadWebsites(currentUser.uid);
     } catch (error) {
       console.error('❌ خطأ في التحقق:', error);
-      showToast('فشل التحقق من الموقع', 'error');
+      showToast('فشل التحقق من الموقع: ' + error.message, 'error');
     }
   };
 
   // ==========================================================
-  // 7. عرض/إخفاء كود التثبيت
+  // 7. عرض/إخفاء كود التثبيت (دالة عامة)
   // ==========================================================
   window.toggleCode = function(id) {
     const el = document.getElementById('code-' + id);
@@ -238,12 +249,12 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   // ==========================================================
-  // 8. نسخ النص إلى الحافظة
+  // 8. نسخ النص إلى الحافظة (دالة عامة)
   // ==========================================================
   window.copyToClipboard = function(btn, text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(function() {
-        btn.textContent = 'تم!';
+        btn.textContent = '✅ تم!';
         setTimeout(function() { btn.textContent = 'نسخ'; }, 2000);
       }).catch(function() {
         fallbackCopy(btn, text);
@@ -258,22 +269,27 @@ document.addEventListener('DOMContentLoaded', function() {
     textarea.value = text;
     document.body.appendChild(textarea);
     textarea.select();
-    document.execCommand('copy');
+    try {
+      document.execCommand('copy');
+      btn.textContent = '✅ تم!';
+      setTimeout(function() { btn.textContent = 'نسخ'; }, 2000);
+    } catch(e) {
+      showToast('فشل النسخ، حاول يدوياً', 'error');
+    }
     document.body.removeChild(textarea);
-    btn.textContent = 'تم!';
-    setTimeout(function() { btn.textContent = 'نسخ'; }, 2000);
   }
 
   // ==========================================================
-  // 9. دوال مساعدة: Toast
+  // 9. دالة عرض الرسائل (عامة)
   // ==========================================================
   function showToast(message, type = 'info') {
-    const container = document.getElementById('toast-container');
+    let container = document.getElementById('toast-container');
     if (!container) {
       const c = document.createElement('div');
       c.id = 'toast-container';
       c.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:99999;display:flex;flex-direction:column;gap:12px;max-width:380px;width:100%;pointer-events:none;';
       document.body.appendChild(c);
+      container = c;
     }
     const colors = { success: '#10B981', error: '#EF4444', info: '#3B82F6', warning: '#F59E0B' };
     const toast = document.createElement('div');
@@ -288,7 +304,7 @@ document.addEventListener('DOMContentLoaded', function() {
       border:1px solid rgba(255,255,255,0.2);
     `;
     toast.textContent = message;
-    document.getElementById('toast-container').appendChild(toast);
+    container.appendChild(toast);
     requestAnimationFrame(() => {
       toast.style.opacity = '1';
       toast.style.transform = 'translateX(0)';
@@ -299,6 +315,9 @@ document.addEventListener('DOMContentLoaded', function() {
       setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 350);
     }, 4000);
   }
+
+  // جعل showToast عامة للاستخدام من أي مكان
+  window.showToast = showToast;
 
   // ==========================================================
   // 10. تفعيل القائمة الجانبية (للجوال)
@@ -340,5 +359,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  console.log('✅ صفحة المواقع جاهزة (بيانات حقيقية)');
+  console.log('✅ صفحة المواقع جاهزة (جميع الأزرار تعمل)');
 });
