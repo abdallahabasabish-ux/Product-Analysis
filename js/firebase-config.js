@@ -1,11 +1,9 @@
 /**
- * firebase-config.js – إعدادات Firebase
- * ⚠️ استبدل هذه القيم بمفاتيح مشروعك من Firebase Console
+ * firebase-config.js – إعدادات Firebase النهائية
  */
 
-// 🔥 استبدل هذه القيم بمفاتيح مشروعك الفعلية
 const firebaseConfig = {
-  apiKey: "AIzaSyDVaRJ_t56faR0iMoMwco9hLJgVSpiMq8M",            // استبدل
+  apiKey: "AIzaSyDVaRJ_t56faR0iMoMwco9hLJgVSpiMq8M",
   authDomain: "product-analysis-fbcb7.firebaseapp.com",
   projectId: "product-analysis-fbcb7",
   storageBucket: "product-analysis-fbcb7.firebasestorage.app",
@@ -17,8 +15,6 @@ const firebaseConfig = {
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
   console.log('✅ Firebase initialized');
-} else {
-  console.warn('⚠️ Firebase already initialized or not loaded');
 }
 
 // تهيئة Firestore
@@ -31,8 +27,5 @@ try {
   console.error('❌ Firestore init error:', e);
 }
 
-// جعل db متاحاً عالمياً
 window.db = db;
-
-// تصدير db للاستخدام في الملفات الأخرى (اختياري)
-export { db };
+window.firebaseDb = db;
