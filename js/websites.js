@@ -1,6 +1,6 @@
 /**
  * websites.js – إدارة المواقع مع قراءة/كتابة من Firestore
- * الإصدار: 2.2.0 (تم إصلاح خطأ التحميل)
+ * الإصدار: 2.2.0 (تم إصلاح خطأ التحميل وتفعيل الأزرار)
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -23,7 +23,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const siteNameInput = document.getElementById('siteNameInput');
   const urlError = document.getElementById('urlError');
   const websitesContainer = document.getElementById('websitesContainer');
-  const countSpan = document.querySelector('.main-content h3');
+  const countSpan = document.getElementById('websitesCount'); // updated to use ID
+  const lastUpdateSpan = document.getElementById('lastUpdate');
 
   let currentUser = null;
   let websitesData = [];
@@ -62,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // ==========================================================
-  // 2. تحميل المواقع من Firestore مع معالجة الأخطاء
+  // 2. تحميل المواقع من Firestore
   // ==========================================================
   async function loadWebsites(userId) {
     try {
@@ -81,13 +82,12 @@ document.addEventListener('DOMContentLoaded', function() {
       });
 
       renderWebsites();
+      updateLastUpdate();
 
     } catch (error) {
       console.error('❌ خطأ في تحميل المواقع:', error);
-      // عرض رسالة خطأ واضحة
       showToast('⚠️ حدث خطأ أثناء تحميل المواقع: ' + error.message, 'error');
       
-      // عرض حالة فارغة مع خيار إعادة المحاولة
       websitesContainer.innerHTML = `
         <div class="empty-state" style="grid-column:1/-1; text-align:center; padding:40px 20px; color:var(--color-mid);">
           <i class="fas fa-exclamation-triangle" style="font-size:48px; color:var(--color-danger); margin-bottom:16px; display:block;"></i>
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </button>
         </div>
       `;
-      if (countSpan) countSpan.textContent = 'مواقعك (—)';
+      if (countSpan) countSpan.innerHTML = '<i class="fas fa-list" style="margin-left:8px;"></i> مواقعك (—)';
     }
   }
 
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
           <p>أضف موقعك الأول للبدء في جمع المشتركين</p>
         </div>
       `;
-      if (countSpan) countSpan.textContent = 'مواقعك (٠)';
+      if (countSpan) countSpan.innerHTML = '<i class="fas fa-list" style="margin-left:8px;"></i> مواقعك (٠)';
       return;
     }
 
@@ -155,11 +155,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     websitesContainer.innerHTML = html;
-    if (countSpan) countSpan.textContent = `مواقعك (${websitesData.length})`;
+    if (countSpan) countSpan.innerHTML = `<i class="fas fa-list" style="margin-left:8px;"></i> مواقعك (${websitesData.length})`;
   }
 
   // ==========================================================
-  // 4. إضافة موقع جديد إلى Firestore
+  // 4. تحديث وقت آخر تحديث
+  // ==========================================================
+  function updateLastUpdate() {
+    if (lastUpdateSpan) {
+      const now = new Date();
+      lastUpdateSpan.textContent = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    }
+  }
+
+  // ==========================================================
+  // 5. إضافة موقع جديد إلى Firestore
   // ==========================================================
   addForm.addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -214,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // ==========================================================
-  // 5. حذف موقع (دالة عامة)
+  // 6. حذف موقع (دالة عامة)
   // ==========================================================
   window.deleteWebsite = async function(docId) {
     if (!currentUser) {
@@ -234,7 +244,7 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   // ==========================================================
-  // 6. التحقق من الموقع (دالة عامة)
+  // 7. التحقق من الموقع (دالة عامة)
   // ==========================================================
   window.verifyWebsite = async function(docId) {
     if (!currentUser) {
@@ -262,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   // ==========================================================
-  // 7. عرض/إخفاء كود التثبيت (دالة عامة)
+  // 8. عرض/إخفاء كود التثبيت (دالة عامة)
   // ==========================================================
   window.toggleCode = function(id) {
     const el = document.getElementById('code-' + id);
@@ -272,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   // ==========================================================
-  // 8. نسخ النص إلى الحافظة (دالة عامة)
+  // 9. نسخ النص إلى الحافظة (دالة عامة)
   // ==========================================================
   window.copyToClipboard = function(btn, text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -303,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ==========================================================
-  // 9. دالة عرض الرسائل (عامة)
+  // 10. دالة عرض الرسائل (عامة)
   // ==========================================================
   function showToast(message, type = 'info') {
     let container = document.getElementById('toast-container');
@@ -342,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.showToast = showToast;
 
   // ==========================================================
-  // 10. تفعيل القائمة الجانبية (للجوال)
+  // 11. تفعيل القائمة الجانبية (للجوال)
   // ==========================================================
   function toggleSidebar(open) {
     if (open) {
@@ -363,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // ==========================================================
-  // 11. قائمة المستخدم (تسجيل الخروج)
+  // 12. قائمة المستخدم (تسجيل الخروج)
   // ==========================================================
   userCard.addEventListener('click', function() {
     logoutMenu.style.display = logoutMenu.style.display === 'block' ? 'none' : 'block';
@@ -381,5 +391,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  console.log('✅ صفحة المواقع جاهزة (جميع الأزرار تعمل)');
+  console.log('✅ صفحة المواقع جاهزة (بيانات حقيقية)');
 });
