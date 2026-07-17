@@ -269,20 +269,82 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
 
+  // ==========================================================
+  // التحقق الفعلي من الموقع عبر الميتا تاج
+  // ==========================================================
   window.verifyWebsite = async function(docId) {
-    if (!currentUser) { showToast('الرجاء تسجيل الدخول أولاً', 'error'); return; }
+    if (!currentUser) {
+      showToast('الرجاء تسجيل الدخول أولاً', 'error');
+      return;
+    }
+
+    // 1. جلب بيانات الموقع من Firestore
+    const siteDoc = await db.collection('websites').doc(docId).get();
+    if (!siteDoc.exists) {
+      showToast('الموقع غير موجود', 'error');
+      return;
+    }
+    const siteData = siteDoc.data();
+    const siteUrl = siteData.siteUrl;
+    const siteId = siteData.siteId; // مثلاً: BP-7X9K2M
+
+    if (!siteUrl) {
+      showToast('رابط الموقع غير صحيح', 'error');
+      return;
+    }
+
+    showToast('⏳ جاري التحقق الفعلي من الموقع...', 'info');
+
     try {
-      showToast('⏳ جاري التحقق...', 'info');
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      await db.collection('websites').doc(docId).update({
-        verified: true,
-        status: 'active',
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      showToast('✅ تم التحقق!', 'success');
+      // 2. استخدام وكيل CORS لجلب محتوى الموقع
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(siteUrl)}`;
+      const response = await fetch(proxyUrl);
+      const result = await response.json();
+
+      if (!result.contents) {
+        showToast('تعذر الوصول إلى الموقع. تأكد من الرابط.', 'error');
+        return;
+      }
+
+      const html = result.contents;
+
+      // 3. البحث عن ميتا تاج التحقق في الـ HTML
+      // صيغة البحث: <meta name="blogpush-verification" content="BP-XXXXXX" />
+      const metaRegex1 = new RegExp(
+        `<meta[^>]*name=["']blogpush-verification["'][^>]*content=["']${siteId}["'][^>]*>`,
+        'i'
+      );
+      const metaRegex2 = new RegExp(
+        `<meta[^>]*content=["']${siteId}["'][^>]*name=["']blogpush-verification["'][^>]*>`,
+        'i'
+      );
+
+      const isVerified = metaRegex1.test(html) || metaRegex2.test(html);
+
+      // 4. تحديث حالة الموقع في Firestore بناءً على النتيجة
+      if (isVerified) {
+        await db.collection('websites').doc(docId).update({
+          verified: true,
+          status: 'active',
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast('✅ تم التحقق بنجاح! (تم العثور على ميتا تاج)', 'success');
+      } else {
+        // إذا لم يتم العثور على الميتا تاج، نضع الحالة "فشل التحقق"
+        await db.collection('websites').doc(docId).update({
+          verified: false,
+          status: 'failed',
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast('❌ فشل التحقق. لم يتم العثور على ميتا تاج التحقق في الموقع.', 'error');
+      }
+
+      // 5. إعادة تحميل القائمة لتحديث الواجهة
       await loadWebsites(currentUser.uid);
+
     } catch (error) {
-      showToast('❌ ' + error.message, 'error');
+      console.error('❌ خطأ في التحقق:', error);
+      showToast('❌ فشل التحقق: ' + error.message, 'error');
     }
   };
 
