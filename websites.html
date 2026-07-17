@@ -106,83 +106,19 @@
     </div>
 
     <!-- ========================================================== -->
-    <!-- قائمة المواقع                                             -->
+    <!-- قائمة المواقع – سيتم تعبئتها بواسطة JavaScript           -->
     <!-- ========================================================== -->
     <section>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <h3 style="font-size:18px; font-weight:700; color:var(--color-dark);">
-          <i class="fas fa-list" style="margin-left:8px;"></i> مواقعك (٣)
+        <h3 style="font-size:18px; font-weight:700; color:var(--color-dark);" id="websitesCount">
+          <i class="fas fa-list" style="margin-left:8px;"></i> مواقعك (٠)
         </h3>
-        <span style="font-size:14px; color:var(--color-mid);">آخر تحديث: منذ دقيقة</span>
+        <span style="font-size:14px; color:var(--color-mid);">آخر تحديث: <span id="lastUpdate">جاري التحميل...</span></span>
       </div>
 
+      <!-- الحاوية التي ستمتلئ بالبطاقات ديناميكياً -->
       <div class="website-grid" id="websitesContainer">
-        <!-- البطاقة 1: موقع موثق -->
-        <div class="website-card">
-          <div class="site-header">
-            <div>
-              <div class="site-name">مدونة التقنية</div>
-              <div class="site-url">techblog.blogspot.com</div>
-            </div>
-            <span class="site-status verified"><i class="fas fa-check-circle"></i> موثق</span>
-          </div>
-          <div class="site-stats">
-            <div class="stat-item"><span class="number">١,٢٤٧</span> <span class="label">مشترك</span></div>
-            <div class="stat-item"><span class="number">١٢</span> <span class="label">حملة</span></div>
-            <div class="stat-item"><span class="number">٨.٤٪</span> <span class="label">نسبة النقر</span></div>
-          </div>
-          <div class="site-actions">
-          <button class="btn-sm" onclick="window.toggleCode('${site.id}')"> <i class="fas fa-code"></i> كود التثبيت</button>
-          <button class="btn-sm" onclick="window.verifyWebsite('${site.id}')"> <i class="fas fa-shield-alt"></i> تحقق</button>
-          <button class="btn-sm danger" onclick="window.deleteWebsite('${site.id}')"> <i class="fas fa-trash-alt"></i> حذف</button>
-          </div>
-          <div id="code-site1" class="code-snippet" style="display:none;">
-            &lt;script src="https://cdn.blogpush.com/sdk.js" data-site-id="BP-7X9K2M"&gt;&lt;/script&gt;
-            <button class="copy-btn" onclick="copyToClipboard(this, '&lt;script src=&quot;https://cdn.blogpush.com/sdk.js&quot; data-site-id=&quot;BP-7X9K2M&quot;&gt;&lt;/script&gt;')">نسخ</button>
-          </div>
-        </div>
-
-        <!-- البطاقة 2: موقع قيد الانتظار -->
-        <div class="website-card">
-          <div class="site-header">
-            <div>
-              <div class="site-name">مدونة التسويق</div>
-              <div class="site-url">marketingblog.blogspot.com</div>
-            </div>
-            <span class="site-status pending"><i class="fas fa-clock"></i> قيد الانتظار</span>
-          </div>
-          <div class="site-stats">
-            <div class="stat-item"><span class="number">٠</span> <span class="label">مشترك</span></div>
-            <div class="stat-item"><span class="number">٠</span> <span class="label">حملة</span></div>
-            <div class="stat-item"><span class="number">—</span> <span class="label">نسبة النقر</span></div>
-          </div>
-          <div class="site-actions">
-            <button class="btn-sm"><i class="fas fa-shield-alt"></i> تحقق</button>
-            <button class="btn-sm"><i class="fas fa-code"></i> كود التثبيت</button>
-            <button class="btn-sm danger"><i class="fas fa-trash-alt"></i> حذف</button>
-          </div>
-        </div>
-
-        <!-- البطاقة 3: موقع فشل التحقق -->
-        <div class="website-card">
-          <div class="site-header">
-            <div>
-              <div class="site-name">مدونة السفر</div>
-              <div class="site-url">travelblog.blogspot.com</div>
-            </div>
-            <span class="site-status failed"><i class="fas fa-times-circle"></i> فشل التحقق</span>
-          </div>
-          <div class="site-stats">
-            <div class="stat-item"><span class="number">٠</span> <span class="label">مشترك</span></div>
-            <div class="stat-item"><span class="number">٠</span> <span class="label">حملة</span></div>
-            <div class="stat-item"><span class="number">—</span> <span class="label">نسبة النقر</span></div>
-          </div>
-          <div class="site-actions">
-            <button class="btn-sm"><i class="fas fa-shield-alt"></i> إعادة التحقق</button>
-            <button class="btn-sm"><i class="fas fa-code"></i> كود التثبيت</button>
-            <button class="btn-sm danger"><i class="fas fa-trash-alt"></i> حذف</button>
-          </div>
-        </div>
+        <!-- سيتم عرض البطاقات هنا بواسطة JavaScript -->
       </div>
     </section>
 
