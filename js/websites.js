@@ -1,6 +1,6 @@
 /**
  * websites.js – إدارة المواقع مع قراءة/كتابة من Firestore
- * الإصدار: 2.1.0 (تم إصلاح الأزرار)
+ * الإصدار: 2.2.0 (تم إصلاح خطأ التحميل)
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -36,8 +36,13 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
-  // جعل db متاحاً عالمياً
-  window.db = firebase.firestore();
+  // التأكد من وجود db
+  const db = firebase.firestore ? firebase.firestore() : null;
+  if (!db) {
+    loadingOverlay.innerHTML = '<div style="color:red;text-align:center;"><i class="fas fa-exclamation-triangle" style="font-size:32px;"></i><br>فشل تهيئة Firestore. تحقق من إعدادات Firebase.</div>';
+    return;
+  }
+  window.db = db;
 
   firebase.auth().onAuthStateChanged(function(user) {
     if (user) {
@@ -49,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
       userAvatar.textContent = displayName.charAt(0).toUpperCase();
       loadingOverlay.style.display = 'none';
 
-      // تحميل المواقع الحقيقية من Firestore
+      // تحميل المواقع
       loadWebsites(user.uid);
     } else {
       window.location.href = 'login.html';
@@ -57,10 +62,14 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // ==========================================================
-  // 2. تحميل المواقع من Firestore
+  // 2. تحميل المواقع من Firestore مع معالجة الأخطاء
   // ==========================================================
   async function loadWebsites(userId) {
     try {
+      if (!window.db) {
+        throw new Error('Firestore غير مهيأ');
+      }
+
       const snapshot = await window.db.collection('websites')
         .where('userId', '==', userId)
         .orderBy('createdAt', 'desc')
@@ -75,7 +84,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     } catch (error) {
       console.error('❌ خطأ في تحميل المواقع:', error);
-      showToast('حدث خطأ أثناء تحميل المواقع', 'error');
+      // عرض رسالة خطأ واضحة
+      showToast('⚠️ حدث خطأ أثناء تحميل المواقع: ' + error.message, 'error');
+      
+      // عرض حالة فارغة مع خيار إعادة المحاولة
+      websitesContainer.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1; text-align:center; padding:40px 20px; color:var(--color-mid);">
+          <i class="fas fa-exclamation-triangle" style="font-size:48px; color:var(--color-danger); margin-bottom:16px; display:block;"></i>
+          <h3 style="font-size:20px; color:var(--color-dark);">فشل تحميل المواقع</h3>
+          <p style="margin-bottom:16px;">${error.message || 'حدث خطأ غير معروف'}</p>
+          <button onclick="window.location.reload()" class="btn btn-primary" style="display:inline-flex;">
+            <i class="fas fa-sync-alt"></i> إعادة المحاولة
+          </button>
+        </div>
+      `;
+      if (countSpan) countSpan.textContent = 'مواقعك (—)';
     }
   }
 
@@ -179,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     } catch (error) {
       console.error('❌ خطأ في إضافة الموقع:', error);
-      showToast('حدث خطأ أثناء إضافة الموقع', 'error');
+      showToast('حدث خطأ أثناء إضافة الموقع: ' + error.message, 'error');
     }
 
     btn.disabled = false;
@@ -316,7 +339,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 4000);
   }
 
-  // جعل showToast عامة للاستخدام من أي مكان
   window.showToast = showToast;
 
   // ==========================================================
