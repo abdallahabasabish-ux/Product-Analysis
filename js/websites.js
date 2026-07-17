@@ -1,6 +1,6 @@
 /**
- * websites.js – إدارة المواقع مع قراءة/كتابة من Firestore
- * الإصدار: 2.4.0 (تم إزالة orderBy لتجنب الفهرس المركب)
+ * websites.js – إدارة المواقع (بدون الحاجة إلى فهرس مركب)
+ * الإصدار: 3.0.0 (نهائي)
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -30,23 +30,22 @@ document.addEventListener('DOMContentLoaded', function() {
   let websitesData = [];
 
   // ==========================================================
-  // 1. التحقق من Firebase والمصادقة
+  // 1. التحقق من Firebase
   // ==========================================================
   if (typeof firebase === 'undefined') {
-    loadingOverlay.innerHTML = '<div style="color:red;text-align:center;"><i class="fas fa-exclamation-triangle" style="font-size:32px;"></i><br>لم يتم تحميل Firebase. تأكد من إعداداتك.</div>';
+    loadingOverlay.innerHTML = '<div style="color:red;text-align:center;padding:50px;">لم يتم تحميل Firebase</div>';
     return;
   }
 
-  // التأكد من وجود db
-  let db = window.db || firebase.firestore();
+  const db = window.db || firebase.firestore();
   if (!db) {
-    loadingOverlay.innerHTML = '<div style="color:red;text-align:center;"><i class="fas fa-exclamation-triangle" style="font-size:32px;"></i><br>فشل تهيئة Firestore. تحقق من إعدادات Firebase.</div>';
+    loadingOverlay.innerHTML = '<div style="color:red;text-align:center;padding:50px;">فشل تهيئة Firestore</div>';
     return;
   }
   window.db = db;
 
   // ==========================================================
-  // 2. المصادقة وتحميل البيانات
+  // 2. المصادقة
   // ==========================================================
   firebase.auth().onAuthStateChanged(async function(user) {
     if (user) {
@@ -57,8 +56,6 @@ document.addEventListener('DOMContentLoaded', function() {
       userEmail.textContent = email;
       userAvatar.textContent = displayName.charAt(0).toUpperCase();
       loadingOverlay.style.display = 'none';
-
-      // تحميل المواقع مع محاولة إعادة المحاولة
       await loadWebsites(user.uid);
     } else {
       window.location.href = 'login.html';
@@ -66,16 +63,11 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // ==========================================================
-  // 3. تحميل المواقع من Firestore (بدون orderBy لتجنب الفهرس)
+  // 3. تحميل المواقع (بدون orderBy لتجنب الفهرس)
   // ==========================================================
-  async function loadWebsites(userId, retryCount = 0) {
+  async function loadWebsites(userId) {
     try {
-      if (!window.db) {
-        throw new Error('Firestore غير مهيأ');
-      }
-
-      // ✅ تمت إزالة orderBy لتجنب الحاجة إلى فهرس مركب
-      const snapshot = await window.db.collection('websites')
+      const snapshot = await db.collection('websites')
         .where('userId', '==', userId)
         .get();
 
@@ -84,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
         websitesData.push({ id: doc.id, ...doc.data() });
       });
 
-      // ✅ ترتيب البيانات في الذاكرة (الأحدث أولاً)
+      // ترتيب في الذاكرة (الأحدث أولاً)
       websitesData.sort((a, b) => {
         const dateA = a.createdAt?.toDate?.() || new Date(0);
         const dateB = b.createdAt?.toDate?.() || new Date(0);
@@ -95,34 +87,18 @@ document.addEventListener('DOMContentLoaded', function() {
       updateLastUpdate();
 
     } catch (error) {
-      console.error('❌ خطأ في تحميل المواقع:', error);
-      
-      // محاولة إعادة المحاولة بعد 3 ثوانٍ (مرة واحدة)
-      if (retryCount < 1) {
-        showToast('⚠️ محاولة إعادة تحميل المواقع...', 'info');
-        setTimeout(() => loadWebsites(userId, retryCount + 1), 3000);
-        return;
-      }
-
-      // عرض رسالة خطأ مع خيارات
+      console.error('❌ خطأ:', error);
       websitesContainer.innerHTML = `
-        <div class="empty-state" style="grid-column:1/-1; text-align:center; padding:40px 20px; color:var(--color-mid);">
-          <i class="fas fa-exclamation-triangle" style="font-size:48px; color:var(--color-danger); margin-bottom:16px; display:block;"></i>
-          <h3 style="font-size:20px; color:var(--color-dark);">فشل تحميل المواقع</h3>
-          <p style="margin-bottom:8px; color:var(--color-danger);">${error.message || 'حدث خطأ غير معروف'}</p>
-          <p style="font-size:14px; color:var(--color-mid); margin-bottom:16px;">
-            تأكد من:<br>
-            • أنك متصل بالإنترنت<br>
-            • أن Firestore مفعّل في مشروع Firebase<br>
-            • أن قواعد الأمان تسمح بالقراءة
-          </p>
-          <button onclick="window.location.reload()" class="btn btn-primary" style="display:inline-flex;">
+        <div class="empty-state" style="grid-column:1/-1;text-align:center;padding:40px;">
+          <i class="fas fa-exclamation-triangle" style="font-size:48px;color:#EF4444;display:block;margin-bottom:16px;"></i>
+          <h3 style="font-size:20px;color:#1A1A2E;">فشل تحميل المواقع</h3>
+          <p style="color:#4A4A5A;">${error.message}</p>
+          <button onclick="location.reload()" class="btn btn-primary" style="margin-top:16px;">
             <i class="fas fa-sync-alt"></i> إعادة المحاولة
           </button>
         </div>
       `;
       if (countSpan) countSpan.innerHTML = '<i class="fas fa-list" style="margin-left:8px;"></i> مواقعك (—)';
-      showToast('❌ ' + error.message, 'error');
     }
   }
 
@@ -134,10 +110,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (websitesData.length === 0) {
       websitesContainer.innerHTML = `
-        <div class="empty-state" style="grid-column:1/-1; text-align:center; padding:40px 20px; color:var(--color-mid);">
-          <i class="fas fa-globe" style="font-size:48px; color:var(--color-light); margin-bottom:16px; display:block;"></i>
-          <h3 style="font-size:20px; color:var(--color-dark);">لا توجد مواقع</h3>
-          <p>أضف موقعك الأول للبدء في جمع المشتركين</p>
+        <div class="empty-state" style="grid-column:1/-1;text-align:center;padding:40px;">
+          <i class="fas fa-globe" style="font-size:48px;color:#A0A0B0;display:block;margin-bottom:16px;"></i>
+          <h3 style="font-size:20px;color:#1A1A2E;">لا توجد مواقع</h3>
+          <p style="color:#4A4A5A;">أضف موقعك الأول للبدء</p>
         </div>
       `;
       if (countSpan) countSpan.innerHTML = '<i class="fas fa-list" style="margin-left:8px;"></i> مواقعك (٠)';
@@ -183,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ==========================================================
-  // 5. تحديث وقت آخر تحديث
+  // 5. تحديث الوقت
   // ==========================================================
   function updateLastUpdate() {
     if (lastUpdateSpan) {
@@ -214,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const siteId = Math.random().toString(36).substring(2, 10).toUpperCase();
       const secretKey = Math.random().toString(36).substring(2, 34);
 
-      await window.db.collection('websites').add({
+      await db.collection('websites').add({
         userId: currentUser.uid,
         siteUrl: url,
         siteName: name,
@@ -234,8 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
       showToast('✅ تم إضافة الموقع بنجاح!', 'success');
 
     } catch (error) {
-      console.error('❌ خطأ في إضافة الموقع:', error);
-      showToast('حدث خطأ أثناء إضافة الموقع: ' + error.message, 'error');
+      showToast('❌ ' + error.message, 'error');
     }
 
     btn.disabled = false;
@@ -250,31 +225,29 @@ document.addEventListener('DOMContentLoaded', function() {
   // 7. دوال الأزرار العامة
   // ==========================================================
   window.deleteWebsite = async function(docId) {
-    if (!currentUser) { showToast('الرجاء تسجيل الدخول أولاً', 'error'); return; }
-    if (!confirm('⚠️ هل أنت متأكد من حذف هذا الموقع؟ سيتم حذف جميع بياناته.')) return;
+    if (!confirm('⚠️ هل أنت متأكد من حذف هذا الموقع؟')) return;
     try {
-      await window.db.collection('websites').doc(docId).delete();
-      showToast('✅ تم حذف الموقع بنجاح', 'success');
+      await db.collection('websites').doc(docId).delete();
+      showToast('✅ تم الحذف', 'success');
       await loadWebsites(currentUser.uid);
     } catch (error) {
-      showToast('حدث خطأ أثناء الحذف: ' + error.message, 'error');
+      showToast('❌ ' + error.message, 'error');
     }
   };
 
   window.verifyWebsite = async function(docId) {
-    if (!currentUser) { showToast('الرجاء تسجيل الدخول أولاً', 'error'); return; }
     try {
       showToast('⏳ جاري التحقق...', 'info');
       await new Promise(resolve => setTimeout(resolve, 1500));
-      await window.db.collection('websites').doc(docId).update({
+      await db.collection('websites').doc(docId).update({
         verified: true,
         status: 'active',
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      showToast('✅ تم التحقق بنجاح!', 'success');
+      showToast('✅ تم التحقق!', 'success');
       await loadWebsites(currentUser.uid);
     } catch (error) {
-      showToast('فشل التحقق: ' + error.message, 'error');
+      showToast('❌ ' + error.message, 'error');
     }
   };
 
@@ -304,7 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
       btn.textContent = '✅ تم!';
       setTimeout(() => btn.textContent = 'نسخ', 2000);
     } catch(e) {
-      showToast('فشل النسخ، حاول يدوياً', 'error');
+      showToast('فشل النسخ', 'error');
     }
     document.body.removeChild(ta);
   }
@@ -369,5 +342,5 @@ document.addEventListener('DOMContentLoaded', function() {
     firebase.auth().signOut().then(() => window.location.href = 'login.html');
   });
 
-  console.log('✅ صفحة المواقع جاهزة (بيانات حقيقية)');
+  console.log('✅ صفحة المواقع جاهزة');
 });
