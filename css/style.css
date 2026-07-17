@@ -352,7 +352,7 @@ ul { list-style: none; }
 .top-bar .actions .btn-new:hover { background: var(--color-black); }
 
 /* ==========================================================
-   بطاقات الإحصائيات
+   بطاقات الإحصائيات (Dashboard)
    ========================================================== */
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px; }
 .stat-card { background: var(--color-white); border-radius: 16px; padding: 24px 20px; border: 1px solid var(--color-light); transition: transform 0.2s, box-shadow 0.2s; }
@@ -402,31 +402,103 @@ ul { list-style: none; }
 .pagination .pages button.active { background: var(--color-dark); color: var(--color-white); border-color: var(--color-dark); }
 
 /* ==========================================================
-   صفحة المشتركين – أدوات البحث
+   صفحة المواقع (Websites)
    ========================================================== */
-.subscriber-toolbar, .campaign-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 20px; background: var(--color-white); padding: 16px 20px; border-radius: var(--radius); border: 1px solid var(--color-light); }
-.subscriber-toolbar .search-box, .campaign-toolbar .search-box { flex: 1; min-width: 200px; position: relative; }
-.subscriber-toolbar .search-box input, .campaign-toolbar .search-box input { width: 100%; padding: 10px 44px 10px 16px; border: 1.5px solid var(--color-light); border-radius: 10px; font-size: 15px; font-family: var(--font-primary); background: var(--color-bg); transition: all 0.25s ease; }
-.subscriber-toolbar .search-box input:focus, .campaign-toolbar .search-box input:focus { border-color: var(--color-dark); outline: none; box-shadow: 0 0 0 3px rgba(26,26,46,0.06); }
-.subscriber-toolbar .search-box i, .campaign-toolbar .search-box i { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--color-gray); }
-.subscriber-toolbar .filter-group, .campaign-toolbar .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
-.subscriber-toolbar .filter-group select, .campaign-toolbar .filter-group select { padding: 10px 14px; border: 1.5px solid var(--color-light); border-radius: 10px; font-size: 14px; font-family: var(--font-primary); background: var(--color-bg); color: var(--color-dark); cursor: pointer; }
-.subscriber-toolbar .btn-export { background: var(--color-bg); border: 1.5px solid var(--color-light); padding: 10px 18px; border-radius: 10px; font-family: var(--font-primary); font-weight: 600; color: var(--color-dark); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
-.subscriber-toolbar .btn-export:hover { background: var(--color-dark); color: var(--color-white); border-color: var(--color-dark); }
+.add-website-card { background: var(--color-white); border: 1px solid var(--color-light); border-radius: var(--radius-lg); padding: 28px 32px; margin-bottom: 32px; }
+.add-website-card .form-row { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+.add-website-card .form-row .form-group { flex: 1; min-width: 200px; margin-bottom: 0; }
+.add-website-card .form-row .form-group input { padding-right: 16px; }
+.add-website-card .form-row .btn { padding: 14px 32px; white-space: nowrap; margin-bottom: 0; }
+.website-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 16px; }
+.website-card { background: var(--color-white); border: 1px solid var(--color-light); border-radius: var(--radius); padding: 24px; transition: all 0.25s ease; }
+.website-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+.website-card .site-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.website-card .site-header .site-name { font-weight: 700; font-size: 18px; color: var(--color-dark); }
+.website-card .site-header .site-url { font-size: 14px; color: var(--color-mid); word-break: break-all; }
+.website-card .site-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-top: 8px; }
+.website-card .site-status.verified { background: var(--color-success-bg); color: var(--color-success); }
+.website-card .site-status.pending { background: var(--color-warning-bg); color: var(--color-warning); }
+.website-card .site-status.failed { background: var(--color-danger-bg); color: var(--color-danger); }
+.website-card .site-stats { display: flex; gap: 24px; margin: 16px 0; padding: 12px 0; border-top: 1px solid var(--color-light); border-bottom: 1px solid var(--color-light); }
+.website-card .site-stats .stat-item .number { font-weight: 700; color: var(--color-dark); font-size: 16px; }
+.website-card .site-stats .stat-item .label { font-size: 13px; color: var(--color-mid); }
+.website-card .site-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.code-snippet { background: var(--color-dark); color: var(--color-light); padding: 12px 16px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px; direction: ltr; text-align: left; margin-top: 12px; word-break: break-all; position: relative; }
+.code-snippet .copy-btn { position: absolute; top: 8px; left: 8px; background: rgba(255,255,255,0.1); border: none; color: #fff; padding: 4px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: var(--font-primary); }
+.code-snippet .copy-btn:hover { background: rgba(255,255,255,0.2); }
 
 /* ==========================================================
-   جدول المشتركين / الحملات
+   صفحة المشتركين (Subscribers)
    ========================================================== */
-.subscriber-table-wrapper, .campaign-table-wrapper { background: var(--color-white); border-radius: var(--radius); border: 1px solid var(--color-light); overflow: hidden; }
-.subscriber-table-wrapper table, .campaign-table-wrapper table { width: 100%; border-collapse: collapse; }
-.subscriber-table-wrapper table th, .campaign-table-wrapper table th { text-align: right; padding: 16px 20px; font-size: 13px; font-weight: 600; color: var(--color-mid); background: var(--color-bg); border-bottom: 1px solid var(--color-light); }
-.subscriber-table-wrapper table td, .campaign-table-wrapper table td { padding: 14px 20px; font-size: 14px; color: var(--color-dark); border-bottom: 1px solid var(--color-bg); }
-.subscriber-table-wrapper table tr:hover td, .campaign-table-wrapper table tr:hover td { background: #FAFAFB; }
-.subscriber-table-wrapper table tr:last-child td, .campaign-table-wrapper table tr:last-child td { border-bottom: none; }
+.subscriber-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px; }
+.subscriber-stat { background: var(--color-white); border: 1px solid var(--color-light); border-radius: var(--radius); padding: 20px 24px; transition: transform 0.2s; }
+.subscriber-stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+.subscriber-stat .stat-number { font-size: 28px; font-weight: 800; color: var(--color-dark); letter-spacing: -0.5px; }
+.subscriber-stat .stat-label { font-size: 14px; color: var(--color-mid); margin-top: 4px; }
+.subscriber-stat .stat-change { font-size: 13px; font-weight: 600; margin-top: 6px; display: inline-block; padding: 2px 10px; border-radius: 20px; }
+.subscriber-stat .stat-change.up { color: var(--color-success); background: var(--color-success-bg); }
+.subscriber-stat .stat-change.down { color: var(--color-danger); background: var(--color-danger-bg); }
+.subscriber-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 20px; background: var(--color-white); padding: 16px 20px; border-radius: var(--radius); border: 1px solid var(--color-light); }
+.subscriber-toolbar .search-box { flex: 1; min-width: 200px; position: relative; }
+.subscriber-toolbar .search-box input { width: 100%; padding: 10px 44px 10px 16px; border: 1.5px solid var(--color-light); border-radius: 10px; font-size: 15px; font-family: var(--font-primary); background: var(--color-bg); transition: all 0.25s ease; }
+.subscriber-toolbar .search-box input:focus { border-color: var(--color-dark); outline: none; box-shadow: 0 0 0 3px rgba(26,26,46,0.06); }
+.subscriber-toolbar .search-box i { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--color-gray); }
+.subscriber-toolbar .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.subscriber-toolbar .filter-group select { padding: 10px 14px; border: 1.5px solid var(--color-light); border-radius: 10px; font-size: 14px; font-family: var(--font-primary); background: var(--color-bg); color: var(--color-dark); cursor: pointer; }
+.subscriber-toolbar .btn-export { background: var(--color-bg); border: 1.5px solid var(--color-light); padding: 10px 18px; border-radius: 10px; font-family: var(--font-primary); font-weight: 600; color: var(--color-dark); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+.subscriber-toolbar .btn-export:hover { background: var(--color-dark); color: var(--color-white); border-color: var(--color-dark); }
+.subscriber-table-wrapper { background: var(--color-white); border-radius: var(--radius); border: 1px solid var(--color-light); overflow: hidden; }
+.subscriber-table-wrapper table { width: 100%; border-collapse: collapse; }
+.subscriber-table-wrapper table th { text-align: right; padding: 16px 20px; font-size: 13px; font-weight: 600; color: var(--color-mid); background: var(--color-bg); border-bottom: 1px solid var(--color-light); }
+.subscriber-table-wrapper table td { padding: 14px 20px; font-size: 14px; color: var(--color-dark); border-bottom: 1px solid var(--color-bg); }
+.subscriber-table-wrapper table tr:hover td { background: #FAFAFB; }
+.subscriber-table-wrapper table tr:last-child td { border-bottom: none; }
 .subscriber-table-wrapper .device-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; background: var(--color-bg); color: var(--color-mid); }
 .subscriber-table-wrapper .device-badge i { font-size: 14px; }
 .subscriber-table-wrapper .checkbox-col { width: 40px; text-align: center; }
 .subscriber-table-wrapper .checkbox-col input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--color-dark); cursor: pointer; }
+
+/* ==========================================================
+   صفحة الحملات (Campaigns)
+   ========================================================== */
+.campaign-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px; }
+.campaign-stat { background: var(--color-white); border: 1px solid var(--color-light); border-radius: var(--radius); padding: 20px 24px; transition: transform 0.2s; }
+.campaign-stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+.campaign-stat .stat-number { font-size: 28px; font-weight: 800; color: var(--color-dark); }
+.campaign-stat .stat-label { font-size: 14px; color: var(--color-mid); margin-top: 4px; }
+.campaign-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 20px; background: var(--color-white); padding: 16px 20px; border-radius: var(--radius); border: 1px solid var(--color-light); }
+.campaign-toolbar .search-box { flex: 1; min-width: 200px; position: relative; }
+.campaign-toolbar .search-box input { width: 100%; padding: 10px 44px 10px 16px; border: 1.5px solid var(--color-light); border-radius: 10px; font-size: 15px; font-family: var(--font-primary); background: var(--color-bg); transition: all 0.25s ease; }
+.campaign-toolbar .search-box input:focus { border-color: var(--color-dark); outline: none; box-shadow: 0 0 0 3px rgba(26,26,46,0.06); }
+.campaign-toolbar .search-box i { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--color-gray); }
+.campaign-toolbar .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.campaign-toolbar .filter-group select { padding: 10px 14px; border: 1.5px solid var(--color-light); border-radius: 10px; font-size: 14px; font-family: var(--font-primary); background: var(--color-bg); color: var(--color-dark); cursor: pointer; }
+.btn-new-campaign { background: var(--color-dark); color: #fff; border: none; padding: 10px 22px; border-radius: 10px; font-weight: 700; font-family: var(--font-primary); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.2s; }
+.btn-new-campaign:hover { background: var(--color-black); }
+.campaign-table-wrapper { background: var(--color-white); border-radius: var(--radius); border: 1px solid var(--color-light); overflow: hidden; }
+.campaign-table-wrapper table { width: 100%; border-collapse: collapse; }
+.campaign-table-wrapper table th { text-align: right; padding: 16px 20px; font-size: 13px; font-weight: 600; color: var(--color-mid); background: var(--color-bg); border-bottom: 1px solid var(--color-light); }
+.campaign-table-wrapper table td { padding: 14px 20px; font-size: 14px; color: var(--color-dark); border-bottom: 1px solid var(--color-bg); }
+.campaign-table-wrapper table tr:hover td { background: #FAFAFB; }
+.campaign-table-wrapper table tr:last-child td { border-bottom: none; }
+.campaign-table-wrapper .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.campaign-table-wrapper .status-badge.sent { background: var(--color-success-bg); color: var(--color-success); }
+.campaign-table-wrapper .status-badge.scheduled { background: var(--color-info-bg); color: var(--color-info); }
+.campaign-table-wrapper .status-badge.draft { background: var(--color-bg); color: var(--color-mid); }
+.campaign-table-wrapper .status-badge.failed { background: var(--color-danger-bg); color: var(--color-danger); }
+
+/* ==========================================================
+   صفحة التحليلات (Analytics)
+   ========================================================== */
+.analytics-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px; }
+.analytics-stat { background: var(--color-white); border: 1px solid var(--color-light); border-radius: var(--radius); padding: 20px 24px; transition: transform 0.2s; }
+.analytics-stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+.analytics-stat .stat-number { font-size: 28px; font-weight: 800; color: var(--color-dark); }
+.analytics-stat .stat-label { font-size: 14px; color: var(--color-mid); margin-top: 4px; }
+.analytics-stat .stat-change { font-size: 13px; font-weight: 600; margin-top: 6px; display: inline-block; padding: 2px 10px; border-radius: 20px; }
+.analytics-stat .stat-change.up { color: var(--color-success); background: var(--color-success-bg); }
+.analytics-stat .stat-change.down { color: var(--color-danger); background: var(--color-danger-bg); }
+.analytics-bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 
 /* ==========================================================
    صفحة RSS التلقائي
@@ -511,6 +583,9 @@ ul { list-style: none; }
   .rss-grid { grid-template-columns: 1fr; }
   .rss-intro { flex-direction: column; align-items: stretch; text-align: center; }
   .rss-card .settings-row { flex-direction: column; gap: 8px; }
+  .website-grid { grid-template-columns: 1fr; }
+  .add-website-card .form-row { flex-direction: column; align-items: stretch; }
+  .add-website-card .form-row .form-group { min-width: unset; }
 }
 
 @media (max-width: 480px) {
