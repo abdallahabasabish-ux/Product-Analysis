@@ -132,9 +132,9 @@
             <div class="stat-item"><span class="number">٨.٤٪</span> <span class="label">نسبة النقر</span></div>
           </div>
           <div class="site-actions">
-            <button class="btn-sm" onclick="copyCode('site1')"><i class="fas fa-code"></i> كود التثبيت</button>
-            <button class="btn-sm"><i class="fas fa-sync-alt"></i> تحديث</button>
-            <button class="btn-sm danger"><i class="fas fa-trash-alt"></i> حذف</button>
+          <button class="btn-sm" onclick="window.toggleCode('${site.id}')"> <i class="fas fa-code"></i> كود التثبيت</button>
+          <button class="btn-sm" onclick="window.verifyWebsite('${site.id}')"> <i class="fas fa-shield-alt"></i> تحقق</button>
+          <button class="btn-sm danger" onclick="window.deleteWebsite('${site.id}')"> <i class="fas fa-trash-alt"></i> حذف</button>
           </div>
           <div id="code-site1" class="code-snippet" style="display:none;">
             &lt;script src="https://cdn.blogpush.com/sdk.js" data-site-id="BP-7X9K2M"&gt;&lt;/script&gt;
