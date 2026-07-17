@@ -1,13 +1,10 @@
 /**
- * dashboard.js – لوحة التحكم مع بيانات حقيقية من Firestore
- * الإصدار: 2.0.0 (نهائي)
+ * dashboard.js – لوحة التحكم مع بيانات حقيقية
+ * الإصدار: 3.0.0 (نهائي)
  */
 
 document.addEventListener('DOMContentLoaded', function() {
 
-  // ==========================================================
-  // عناصر الصفحة
-  // ==========================================================
   const loadingOverlay = document.getElementById('loadingOverlay');
   const sidebar = document.getElementById('sidebar');
   const sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -21,19 +18,15 @@ document.addEventListener('DOMContentLoaded', function() {
   const userCard = document.getElementById('userCard');
   const logoutMenu = document.getElementById('logoutMenu');
 
-  // ==========================================================
-  // 1. التحقق من Firebase والمصادقة
-  // ==========================================================
   if (typeof firebase === 'undefined') {
-    loadingOverlay.innerHTML = '<div style="color:red;text-align:center;"><i class="fas fa-exclamation-triangle" style="font-size:32px;"></i><br>لم يتم تحميل Firebase. تأكد من إعداداتك.</div>';
+    loadingOverlay.innerHTML = '<div style="color:red;text-align:center;padding:50px;">لم يتم تحميل Firebase</div>';
     return;
   }
 
-  let currentUser = null;
+  const db = window.db || firebase.firestore();
 
-  firebase.auth().onAuthStateChanged(function(user) {
+  firebase.auth().onAuthStateChanged(async function(user) {
     if (user) {
-      currentUser = user;
       const displayName = user.displayName || user.email || 'مستخدم';
       const email = user.email || '';
       userName.textContent = displayName;
@@ -43,47 +36,26 @@ document.addEventListener('DOMContentLoaded', function() {
       const now = new Date();
       dateText.textContent = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
       loadingOverlay.style.display = 'none';
-
-      // تحميل الإحصائيات الحقيقية من Firestore
-      loadDashboardStats(user.uid);
-      loadRecentCampaigns(user.uid);
+      await loadStats(user.uid);
+      await loadRecentCampaigns(user.uid);
+      await loadCharts(user.uid);
     } else {
       window.location.href = 'login.html';
     }
   });
 
-  // ==========================================================
-  // 2. تحميل الإحصائيات من Firestore
-  // ==========================================================
-  async function loadDashboardStats(userId) {
+  async function loadStats(userId) {
     try {
-      // جلب عدد المواقع
-      const websitesSnapshot = await db.collection('websites')
-        .where('userId', '==', userId)
-        .get();
-      const websitesCount = websitesSnapshot.size;
+      const websites = await db.collection('websites').where('userId', '==', userId).get();
+      const subscribers = await db.collection('subscribers').where('userId', '==', userId).get();
+      const campaigns = await db.collection('campaigns').where('userId', '==', userId).get();
 
-      // جلب عدد المشتركين
-      const subscribersSnapshot = await db.collection('subscribers')
-        .where('userId', '==', userId)
-        .get();
-      const subscribersCount = subscribersSnapshot.size;
+      document.getElementById('statWebsites').textContent = websites.size;
+      document.getElementById('statSubscribers').textContent = subscribers.size.toLocaleString('ar-EG');
+      document.getElementById('statCampaigns').textContent = campaigns.size;
 
-      // جلب عدد الحملات
-      const campaignsSnapshot = await db.collection('campaigns')
-        .where('userId', '==', userId)
-        .get();
-      const campaignsCount = campaignsSnapshot.size;
-
-      // تحديث واجهة المستخدم
-      document.getElementById('statWebsites').textContent = websitesCount;
-      document.getElementById('statSubscribers').textContent = subscribersCount.toLocaleString('ar-EG');
-      document.getElementById('statCampaigns').textContent = campaignsCount;
-
-      // حساب نسبة النقر (CTR) من الحملات المرسلة
-      let totalOpens = 0;
-      let totalDelivered = 0;
-      campaignsSnapshot.forEach(doc => {
+      let totalOpens = 0, totalDelivered = 0;
+      campaigns.forEach(doc => {
         const data = doc.data();
         if (data.status === 'sent') {
           totalOpens += data.opens || 0;
@@ -92,25 +64,14 @@ document.addEventListener('DOMContentLoaded', function() {
       });
       const ctr = totalDelivered > 0 ? ((totalOpens / totalDelivered) * 100).toFixed(1) : '٠';
       document.getElementById('statCtr').textContent = ctr + '٪';
-
-      console.log('✅ تم تحميل الإحصائيات:', { websitesCount, subscribersCount, campaignsCount, ctr });
-
     } catch (error) {
-      console.error('❌ خطأ في تحميل الإحصائيات:', error);
-      // استخدام القيم الافتراضية
-      document.getElementById('statWebsites').textContent = '٠';
-      document.getElementById('statSubscribers').textContent = '٠';
-      document.getElementById('statCampaigns').textContent = '٠';
-      document.getElementById('statCtr').textContent = '٠٪';
+      console.error('❌ خطأ في الإحصائيات:', error);
     }
   }
 
-  // ==========================================================
-  // 3. تحميل آخر الحملات من Firestore
-  // ==========================================================
   async function loadRecentCampaigns(userId) {
     try {
-      const campaignsSnapshot = await db.collection('campaigns')
+      const snapshot = await db.collection('campaigns')
         .where('userId', '==', userId)
         .orderBy('createdAt', 'desc')
         .limit(4)
@@ -119,20 +80,13 @@ document.addEventListener('DOMContentLoaded', function() {
       const tbody = document.querySelector('.recent-table tbody');
       if (!tbody) return;
 
-      if (campaignsSnapshot.empty) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="5" style="text-align:center; padding:40px 0; color:var(--color-mid);">
-              <i class="fas fa-inbox" style="font-size:28px; display:block; margin-bottom:8px;"></i>
-              لا توجد حملات بعد. أنشئ حملتك الأولى!
-            </td>
-          </tr>
-        `;
+      if (snapshot.empty) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;">لا توجد حملات</td></tr>`;
         return;
       }
 
       let html = '';
-      campaignsSnapshot.forEach(doc => {
+      snapshot.forEach(doc => {
         const data = doc.data();
         const statusMap = {
           'sent': '<span class="status-badge success">مرسلة</span>',
@@ -141,64 +95,42 @@ document.addEventListener('DOMContentLoaded', function() {
           'failed': '<span class="status-badge danger">فشلت</span>'
         };
         const statusHtml = statusMap[data.status] || '<span class="status-badge">غير معروف</span>';
-        const sentDate = data.sentAt ? new Date(data.sentAt.seconds * 1000).toLocaleDateString('ar-EG') : '—';
+        const sentDate = data.sentAt?.toDate?.() ? data.sentAt.toDate().toLocaleDateString('ar-EG') : '—';
         const ctrDisplay = data.clicks && data.delivered ? ((data.clicks / data.delivered) * 100).toFixed(1) + '٪' : '—';
-        
-        html += `
-          <tr>
-            <td>${data.title || 'بدون عنوان'}</td>
-            <td>${data.siteName || 'غير محدد'}</td>
-            <td>${statusHtml}</td>
-            <td>${ctrDisplay}</td>
-            <td>${sentDate}</td>
-          </tr>
-        `;
+        html += `<tr><td>${data.title || 'بدون عنوان'}</td><td>${data.siteName || 'غير محدد'}</td><td>${statusHtml}</td><td>${ctrDisplay}</td><td>${sentDate}</td></tr>`;
       });
-
       tbody.innerHTML = html;
-
     } catch (error) {
-      console.error('❌ خطأ في تحميل الحملات:', error);
+      console.error('❌ خطأ في الحملات:', error);
     }
   }
 
-  // ==========================================================
-  // 4. المخططات (Charts) – تعرض بيانات حقيقية
-  // ==========================================================
   async function loadCharts(userId) {
     try {
-      // جلب بيانات المشتركين الشهرية
-      const subscribersSnapshot = await db.collection('subscribers')
-        .where('userId', '==', userId)
-        .get();
-
-      // تجميع المشتركين حسب الشهر
+      const snapshot = await db.collection('subscribers').where('userId', '==', userId).get();
       const monthlyData = {};
       const now = new Date();
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(now.getMonth() - 6);
 
-      subscribersSnapshot.forEach(doc => {
+      snapshot.forEach(doc => {
         const data = doc.data();
-        const date = data.subscribedAt?.toDate() || data.createdAt?.toDate() || new Date();
+        const date = data.subscribedAt?.toDate?.() || data.createdAt?.toDate?.() || new Date();
         if (date >= sixMonthsAgo) {
-          const monthKey = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
-          monthlyData[monthKey] = (monthlyData[monthKey] || 0) + 1;
+          const key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+          monthlyData[key] = (monthlyData[key] || 0) + 1;
         }
       });
 
-      // ترتيب الأشهر
-      const months = [];
-      const counts = [];
+      const months = [], counts = [];
       for (let i = 5; i >= 0; i--) {
         const d = new Date();
         d.setMonth(d.getMonth() - i);
-        const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
         months.push(d.toLocaleDateString('ar-EG', { month: 'short' }));
+        const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
         counts.push(monthlyData[key] || 0);
       }
 
-      // رسم المخطط الخطي
       const growthCtx = document.getElementById('growthChart');
       if (growthCtx) {
         new Chart(growthCtx, {
@@ -209,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
               label: 'المشتركين الجدد',
               data: counts,
               borderColor: '#1A1A2E',
-              backgroundColor: 'rgba(26, 26, 46, 0.05)',
+              backgroundColor: 'rgba(26,26,46,0.05)',
               tension: 0.3,
               fill: true,
               pointBackgroundColor: '#1A1A2E',
@@ -220,17 +152,13 @@ document.addEventListener('DOMContentLoaded', function() {
             responsive: true,
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
-            scales: {
-              y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' } },
-              x: { grid: { display: false } }
-            }
+            scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' } }, x: { grid: { display: false } } }
           }
         });
       }
 
-      // توزيع الأجهزة (حقيقي)
       const deviceData = { 'الهواتف': 0, 'الحواسيب': 0, 'الأجهزة اللوحية': 0, 'أخرى': 0 };
-      subscribersSnapshot.forEach(doc => {
+      snapshot.forEach(doc => {
         const data = doc.data();
         const device = data.device || 'أخرى';
         if (device.includes('mobile') || device.includes('phone')) deviceData['الهواتف']++;
@@ -269,64 +197,29 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         });
       }
-
     } catch (error) {
-      console.error('❌ خطأ في تحميل المخططات:', error);
+      console.error('❌ خطأ في المخططات:', error);
     }
   }
 
-  // ==========================================================
-  // 5. تفعيل القائمة الجانبية (للجوال)
-  // ==========================================================
   function toggleSidebar(open) {
-    if (open) {
-      sidebar.classList.add('open');
-      sidebarOverlay.classList.add('open');
-    } else {
-      sidebar.classList.remove('open');
-      sidebarOverlay.classList.remove('open');
-    }
+    if (open) { sidebar.classList.add('open'); sidebarOverlay.classList.add('open'); }
+    else { sidebar.classList.remove('open'); sidebarOverlay.classList.remove('open'); }
   }
+  menuToggle.addEventListener('click', () => toggleSidebar(!sidebar.classList.contains('open')));
+  sidebarOverlay.addEventListener('click', () => toggleSidebar(false));
 
-  menuToggle.addEventListener('click', function() {
-    toggleSidebar(!sidebar.classList.contains('open'));
-  });
-
-  sidebarOverlay.addEventListener('click', function() {
-    toggleSidebar(false);
-  });
-
-  // ==========================================================
-  // 6. قائمة المستخدم (تسجيل الخروج)
-  // ==========================================================
-  userCard.addEventListener('click', function() {
+  userCard.addEventListener('click', () => {
     logoutMenu.style.display = logoutMenu.style.display === 'block' ? 'none' : 'block';
   });
-
-  document.addEventListener('click', function(e) {
+  document.addEventListener('click', (e) => {
     if (!userCard.contains(e.target) && !logoutMenu.contains(e.target)) {
       logoutMenu.style.display = 'none';
     }
   });
-
-  logoutBtn.addEventListener('click', function() {
-    firebase.auth().signOut().then(function() {
-      window.location.href = 'login.html';
-    }).catch(function(error) {
-      alert('حدث خطأ أثناء تسجيل الخروج: ' + error.message);
-    });
+  logoutBtn.addEventListener('click', () => {
+    firebase.auth().signOut().then(() => window.location.href = 'login.html');
   });
 
-  // ==========================================================
-  // 7. تحميل المخططات بعد أن يتم تحميل المستخدم
-  // ==========================================================
-  firebase.auth().onAuthStateChanged(function(user) {
-    if (user) {
-      setTimeout(function() {
-        loadCharts(user.uid);
-      }, 800);
-    }
-  });
-
-  console.log('✅ لوحة التحكم جاهزة (بيانات حقيقية)');
+  console.log('✅ لوحة التحكم جاهزة');
 });
