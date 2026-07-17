@@ -1,6 +1,9 @@
-// ==============================================================
-// إعدادات Firebase – استبدل هذه القيم بمفاتيح مشروعك
-// ==============================================================
+/**
+ * firebase-config.js – إعدادات Firebase
+ * ⚠️ استبدل هذه القيم بمفاتيح مشروعك من Firebase Console
+ */
+
+// 🔥 استبدل هذه القيم بمفاتيح مشروعك الفعلية
 const firebaseConfig = {
   apiKey: "AIzaSyDVaRJ_t56faR0iMoMwco9hLJgVSpiMq8M",            // استبدل
   authDomain: "product-analysis-fbcb7.firebaseapp.com",
@@ -11,4 +14,25 @@ const firebaseConfig = {
 };
 
 // تهيئة Firebase
-firebase.initializeApp(firebaseConfig);
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+  console.log('✅ Firebase initialized');
+} else {
+  console.warn('⚠️ Firebase already initialized or not loaded');
+}
+
+// تهيئة Firestore
+let db;
+try {
+  db = firebase.firestore();
+  db.settings({ merge: true, ignoreUndefinedProperties: true });
+  console.log('✅ Firestore initialized');
+} catch (e) {
+  console.error('❌ Firestore init error:', e);
+}
+
+// جعل db متاحاً عالمياً
+window.db = db;
+
+// تصدير db للاستخدام في الملفات الأخرى (اختياري)
+export { db };
