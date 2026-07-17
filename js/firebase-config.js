@@ -2,12 +2,12 @@
 // إعدادات Firebase – استبدل هذه القيم بمفاتيح مشروعك
 // ==============================================================
 const firebaseConfig = {
-  apiKey: "AIzaSy...",            // استبدل
-  authDomain: "your-app.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-app.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
+  apiKey: "AIzaSyDVaRJ_t56faR0iMoMwco9hLJgVSpiMq8M",            // استبدل
+  authDomain: "product-analysis-fbcb7.firebaseapp.com",
+  projectId: "product-analysis-fbcb7",
+  storageBucket: "product-analysis-fbcb7.firebasestorage.app",
+  messagingSenderId: "295714829331",
+  appId: "1:295714829331:web:8839a16033d92cac533be6"
 };
 
 // تهيئة Firebase
