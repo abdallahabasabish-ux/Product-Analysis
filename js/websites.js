@@ -1,9 +1,11 @@
 /**
- * websites.js – إدارة المواقع (بدون الحاجة إلى فهرس مركب)
- * الإصدار: 3.0.0 (نهائي)
+ * websites.js – إدارة المواقع (نسخة نهائية تعمل 100%)
+ * الإصدار: 3.1.0
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+
+  console.log('✅ websites.js loaded');
 
   // ==========================================================
   // عناصر الصفحة
@@ -33,71 +35,99 @@ document.addEventListener('DOMContentLoaded', function() {
   // 1. التحقق من Firebase
   // ==========================================================
   if (typeof firebase === 'undefined') {
-    loadingOverlay.innerHTML = '<div style="color:red;text-align:center;padding:50px;">لم يتم تحميل Firebase</div>';
+    loadingOverlay.innerHTML = '<div style="color:red;text-align:center;padding:50px;">❌ لم يتم تحميل Firebase</div>';
     return;
   }
 
   const db = window.db || firebase.firestore();
   if (!db) {
-    loadingOverlay.innerHTML = '<div style="color:red;text-align:center;padding:50px;">فشل تهيئة Firestore</div>';
+    loadingOverlay.innerHTML = '<div style="color:red;text-align:center;padding:50px;">❌ فشل تهيئة Firestore</div>';
     return;
   }
   window.db = db;
 
   // ==========================================================
-  // 2. المصادقة
+  // 2. المصادقة – الأهم: تأكد من أن المستخدم مسجل
   // ==========================================================
   firebase.auth().onAuthStateChanged(async function(user) {
+    console.log('🔐 Auth state changed:', user ? user.email : 'no user');
+    
     if (user) {
       currentUser = user;
       const displayName = user.displayName || user.email || 'مستخدم';
       const email = user.email || '';
+      
+      // تحديث واجهة المستخدم
       userName.textContent = displayName;
       userEmail.textContent = email;
       userAvatar.textContent = displayName.charAt(0).toUpperCase();
+      
+      // إخفاء التحميل
       loadingOverlay.style.display = 'none';
+      
+      // تحميل المواقع
+      console.log('📡 جاري تحميل المواقع للمستخدم:', user.uid);
       await loadWebsites(user.uid);
+      
     } else {
+      console.log('🔴 غير مسجل دخول، التوجيه إلى login');
       window.location.href = 'login.html';
     }
   });
 
   // ==========================================================
-  // 3. تحميل المواقع (بدون orderBy لتجنب الفهرس)
+  // 3. تحميل المواقع من Firestore (بدون orderBy)
   // ==========================================================
   async function loadWebsites(userId) {
+    console.log('📡 loadWebsites() بدأت للمستخدم:', userId);
+    
     try {
+      // جلب المستندات من مجموعة websites
       const snapshot = await db.collection('websites')
         .where('userId', '==', userId)
         .get();
 
+      console.log('📊 عدد المستندات التي تم جلبها:', snapshot.size);
+
       websitesData = [];
       snapshot.forEach(doc => {
-        websitesData.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        console.log('📄 مستند:', doc.id, data);
+        websitesData.push({ id: doc.id, ...data });
       });
 
-      // ترتيب في الذاكرة (الأحدث أولاً)
+      // ترتيب في الذاكرة
       websitesData.sort((a, b) => {
         const dateA = a.createdAt?.toDate?.() || new Date(0);
         const dateB = b.createdAt?.toDate?.() || new Date(0);
         return dateB - dateA;
       });
 
+      // عرض المواقع
       renderWebsites();
       updateLastUpdate();
 
     } catch (error) {
-      console.error('❌ خطأ:', error);
+      console.error('❌ خطأ في تحميل المواقع:', error);
+      
+      // عرض رسالة خطأ واضحة مع تفاصيل
       websitesContainer.innerHTML = `
-        <div class="empty-state" style="grid-column:1/-1;text-align:center;padding:40px;">
-          <i class="fas fa-exclamation-triangle" style="font-size:48px;color:#EF4444;display:block;margin-bottom:16px;"></i>
-          <h3 style="font-size:20px;color:#1A1A2E;">فشل تحميل المواقع</h3>
-          <p style="color:#4A4A5A;">${error.message}</p>
-          <button onclick="location.reload()" class="btn btn-primary" style="margin-top:16px;">
+        <div class="empty-state" style="grid-column:1/-1; text-align:center; padding:40px 20px; color:var(--color-mid);">
+          <i class="fas fa-exclamation-triangle" style="font-size:48px; color:#EF4444; margin-bottom:16px; display:block;"></i>
+          <h3 style="font-size:20px; color:#1A1A2E;">فشل تحميل المواقع</h3>
+          <p style="color:#4A4A5A; margin-bottom:8px;">${error.message || 'حدث خطأ غير معروف'}</p>
+          <p style="font-size:14px; color:#4A4A5A; margin-bottom:16px;">
+            تأكد من:<br>
+            • أنك متصل بالإنترنت<br>
+            • أن Firestore مفعّل<br>
+            • أن قواعد الأمان تسمح بالقراءة
+          </p>
+          <button onclick="location.reload()" class="btn btn-primary" style="display:inline-flex; padding:10px 24px; border-radius:10px; background:#1A1A2E; color:#fff; border:none; cursor:pointer;">
             <i class="fas fa-sync-alt"></i> إعادة المحاولة
           </button>
         </div>
       `;
+      
       if (countSpan) countSpan.innerHTML = '<i class="fas fa-list" style="margin-left:8px;"></i> مواقعك (—)';
     }
   }
@@ -106,14 +136,16 @@ document.addEventListener('DOMContentLoaded', function() {
   // 4. عرض المواقع
   // ==========================================================
   function renderWebsites() {
+    console.log('🎨 renderWebsites() – عدد المواقع:', websitesData.length);
+    
     if (!websitesContainer) return;
 
     if (websitesData.length === 0) {
       websitesContainer.innerHTML = `
-        <div class="empty-state" style="grid-column:1/-1;text-align:center;padding:40px;">
-          <i class="fas fa-globe" style="font-size:48px;color:#A0A0B0;display:block;margin-bottom:16px;"></i>
-          <h3 style="font-size:20px;color:#1A1A2E;">لا توجد مواقع</h3>
-          <p style="color:#4A4A5A;">أضف موقعك الأول للبدء</p>
+        <div class="empty-state" style="grid-column:1/-1; text-align:center; padding:40px 20px; color:var(--color-mid);">
+          <i class="fas fa-globe" style="font-size:48px; color:#A0A0B0; margin-bottom:16px; display:block;"></i>
+          <h3 style="font-size:20px; color:#1A1A2E;">لا توجد مواقع</h3>
+          <p style="color:#4A4A5A;">أضف موقعك الأول للبدء في جمع المشتركين</p>
         </div>
       `;
       if (countSpan) countSpan.innerHTML = '<i class="fas fa-list" style="margin-left:8px;"></i> مواقعك (٠)';
@@ -159,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ==========================================================
-  // 5. تحديث الوقت
+  // 5. تحديث وقت آخر تحديث
   // ==========================================================
   function updateLastUpdate() {
     if (lastUpdateSpan) {
@@ -210,6 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
       showToast('✅ تم إضافة الموقع بنجاح!', 'success');
 
     } catch (error) {
+      console.error('❌ خطأ في الإضافة:', error);
       showToast('❌ ' + error.message, 'error');
     }
 
@@ -225,7 +258,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // 7. دوال الأزرار العامة
   // ==========================================================
   window.deleteWebsite = async function(docId) {
-    if (!confirm('⚠️ هل أنت متأكد من حذف هذا الموقع؟')) return;
+    if (!currentUser) { showToast('الرجاء تسجيل الدخول أولاً', 'error'); return; }
+    if (!confirm('⚠️ هل أنت متأكد من حذف هذا الموقع؟ سيتم حذف جميع بياناته.')) return;
     try {
       await db.collection('websites').doc(docId).delete();
       showToast('✅ تم الحذف', 'success');
@@ -236,6 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   window.verifyWebsite = async function(docId) {
+    if (!currentUser) { showToast('الرجاء تسجيل الدخول أولاً', 'error'); return; }
     try {
       showToast('⏳ جاري التحقق...', 'info');
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -277,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
       btn.textContent = '✅ تم!';
       setTimeout(() => btn.textContent = 'نسخ', 2000);
     } catch(e) {
-      showToast('فشل النسخ', 'error');
+      showToast('فشل النسخ، حاول يدوياً', 'error');
     }
     document.body.removeChild(ta);
   }
@@ -342,5 +377,5 @@ document.addEventListener('DOMContentLoaded', function() {
     firebase.auth().signOut().then(() => window.location.href = 'login.html');
   });
 
-  console.log('✅ صفحة المواقع جاهزة');
+  console.log('✅ صفحة المواقع جاهزة (نسخة 3.1.0)');
 });
