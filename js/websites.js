@@ -155,10 +155,17 @@ document.addEventListener('DOMContentLoaded', function() {
             <button class="btn-sm" onclick="window.toggleCode('${site.id}')"><i class="fas fa-code"></i> كود التوثيق</button>
             <button class="btn-sm" onclick="window.verifyWebsite('${site.id}')"><i class="fas fa-shield-alt"></i> تحقق</button>
             <button class="btn-sm danger" onclick="window.deleteWebsite('${site.id}')"><i class="fas fa-trash-alt"></i> حذف</button>
-          </div>
-          <div id="code-${site.id}" class="code-snippet" style="display:none; direction:ltr; text-align:left;">
-            <code>${encodedMetaTag}</code>
-            <button class="copy-btn" onclick="window.copyToClipboard(this, '${metaTagCode.replace(/'/g, "\\'")}')" style="margin-top:10px;">نسخ الكود</button>
+          <div id="code-${site.id}" class="code-snippet" style="display:none; direction:ltr; text-align:left; padding:15px; background:#f8f9fa; border-radius:8px; margin-top:10px; border: 1px solid #eee;">
+            <p style="font-size:13px; color:#444; margin-bottom:10px; direction:rtl; text-align:right;"> انسخ هذا الكود وضعه داخل وسم <code>&lt;head&gt;</code> في موقعك: </p>
+            <code style="display:block; background:#e9ecef; padding:10px 12px; border-radius:6px; color:#07c; font-weight:bold; word-break:break-all; margin-bottom:15px;">
+              ${encodedMetaTag}
+            </code>
+            
+            <div style="direction:rtl; text-align:right;">
+              <button class="copy-btn" onclick="window.copyToClipboard(this, '${metaTagToCopy}')" style="display:inline-block; padding:8px 20px; min-width:120px; font-size:14px; font-family:inherit; background:#1A1A2E; color:#fff; border:none; border-radius:6px; cursor:pointer; white-space:nowrap; transition: background 0.2s;">
+                <i class="fas fa-copy" style="margin-left:5px;"></i> نسخ الكود
+              </button>
+            </div>
           </div>
         </div>
       `;
