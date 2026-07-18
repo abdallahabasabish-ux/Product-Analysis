@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <button class="btn-sm danger" onclick="window.deleteWebsite('${site.id}')"><i class="fas fa-trash-alt"></i> حذف</button>
           </div>
           <div id="code-${site.id}" class="code-snippet" style="display:none; direction:ltr; text-align:left;">
-            <p style="font-size:12px; color:#666; margin-bottom:8px; direction:rtl; text-align:right;">انسخ هذا الكود وضعه داخل وسم <code>&lt;head&gt;</code> في موقعك:</p>
+            <p style="font-size:12px; color:#666; margin-bottom:8px; direction:rtl; text-align:right;">انسخ هذا الكود وضعه داخل وسم <code>head</code> في موقعك:</p>
             <code>${encodedMetaTag}</code>
             <button class="copy-btn" onclick="window.copyToClipboard(this, '${metaTagCode.replace(/'/g, "\\'")}')" style="margin-top:10px;">نسخ الكود</button>
           </div>
