@@ -233,86 +233,77 @@ document.addEventListener('DOMContentLoaded', function() {
   // ==========================================================
   // 7. التحقق الفعلي من الموقع 🔥 (الجزء المهم)
   // ==========================================================
-  window.verifyWebsite = async function(docId) {
-    if (!currentUser) {
-      showToast('الرجاء تسجيل الدخول أولاً', 'error');
+ window.verifyWebsite = async function(docId) {
+  if (!currentUser) {
+    showToast('الرجاء تسجيل الدخول أولاً', 'error');
+    return;
+  }
+
+  const siteDoc = await db.collection('websites').doc(docId).get();
+  if (!siteDoc.exists) {
+    showToast('الموقع غير موجود', 'error');
+    return;
+  }
+  
+  const siteData = siteDoc.data();
+  const siteUrl = siteData.siteUrl;
+  const siteId = siteData.siteId;
+
+  if (!siteUrl) {
+    showToast('رابط الموقع غير صحيح', 'error');
+    return;
+  }
+
+  showToast('⏳ جاري التحقق الفعلي من الموقع...', 'info');
+
+  try {
+    // إضافة طابع زمني لمنع التخزين المؤقت (Cache)
+    const timestamp = new Date().getTime();
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(siteUrl)}&_t=${timestamp}`;
+    
+    const response = await fetch(proxyUrl);
+    const result = await response.json();
+
+    if (!result.contents) {
+      showToast('تعذر الوصول إلى الموقع. قد يكون الموقع محمياً.', 'error');
       return;
     }
 
-    // جلب بيانات الموقع
-    const siteDoc = await db.collection('websites').doc(docId).get();
-    if (!siteDoc.exists) {
-      showToast('الموقع غير موجود', 'error');
-      return;
-    }
-    const siteData = siteDoc.data();
-    const siteUrl = siteData.siteUrl;
-    const siteId = siteData.siteId;
+    const html = result.contents;
 
-    if (!siteUrl) {
-      showToast('رابط الموقع غير صحيح', 'error');
-      return;
-    }
+    // البحث عن كود الـ Script بدلاً من הـ Meta
+    const scriptRegex = new RegExp(`<script[^>]*data-site-id=["']${siteId}["'][^>]*>`, 'i');
+    const isVerified = scriptRegex.test(html);
 
-    showToast('⏳ جاري التحقق الفعلي من الموقع...', 'info');
-
-    try {
-      // محاولة جلب الموقع باستخدام وكيل
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(siteUrl)}`;
-      const response = await fetch(proxyUrl);
-      const result = await response.json();
-
-      if (!result.contents) {
-        showToast('تعذر الوصول إلى الموقع. تأكد من الرابط.', 'error');
-        return;
-      }
-
-      const html = result.contents;
-
-      // البحث عن ميتا تاج التحقق
-      const metaRegex1 = new RegExp(
-        `<meta[^>]*name=["']blogpush-verification["'][^>]*content=["']${siteId}["'][^>]*>`,
-        'i'
-      );
-      const metaRegex2 = new RegExp(
-        `<meta[^>]*content=["']${siteId}["'][^>]*name=["']blogpush-verification["'][^>]*>`,
-        'i'
-      );
-
-      const isVerified = metaRegex1.test(html) || metaRegex2.test(html);
-
-      // تحديث الحالة بناءً على النتيجة
-      if (isVerified) {
-        await db.collection('websites').doc(docId).update({
-          verified: true,
-          status: 'active',
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        showToast('✅ تم التحقق بنجاح! (تم العثور على ميتا تاج)', 'success');
-      } else {
-        await db.collection('websites').doc(docId).update({
-          verified: false,
-          status: 'failed',
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        showToast('❌ فشل التحقق. لم يتم العثور على ميتا تاج التحقق في الموقع.', 'error');
-      }
-
-      await loadWebsites(currentUser.uid);
-
-    } catch (error) {
-      console.error('❌ خطأ في التحقق:', error);
-      // إذا فشل جلب الموقع، نضع الحالة "فشل التحقق"
+    if (isVerified) {
+      await db.collection('websites').doc(docId).update({
+        verified: true,
+        status: 'active',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showToast('✅ تم التحقق بنجاح!', 'success');
+    } else {
       await db.collection('websites').doc(docId).update({
         verified: false,
         status: 'failed',
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      showToast('❌ فشل التحقق: ' + error.message, 'error');
-      await loadWebsites(currentUser.uid);
+      showToast('❌ فشل التحقق. لم يتم العثور على الكود في مصدر الصفحة الرئيسية.', 'error');
     }
-  };
 
+    await loadWebsites(currentUser.uid);
+
+  } catch (error) {
+    console.error('❌ خطأ في التحقق:', error);
+    await db.collection('websites').doc(docId).update({
+      verified: false,
+      status: 'failed',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('❌ فشل التحقق بسبب مشكلة في الاتصال بالموقع.', 'error');
+    await loadWebsites(currentUser.uid);
+  }
+};
   // ==========================================================
   // 8. دوال أخرى (حذف، كود، نسخ، Toast، القائمة الجانبية)
   // ==========================================================
