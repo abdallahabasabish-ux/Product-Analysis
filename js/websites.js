@@ -233,45 +233,29 @@ document.addEventListener('DOMContentLoaded', function() {
   // ==========================================================
   // 7. التحقق الفعلي من الموقع 🔥 (الجزء المهم)
   // ==========================================================
- window.verifyWebsite = async function(docId) {
-  if (!currentUser) {
-    showToast('الرجاء تسجيل الدخول أولاً', 'error');
-    return;
-  }
-
-  const siteDoc = await db.collection('websites').doc(docId).get();
-  if (!siteDoc.exists) {
-    showToast('الموقع غير موجود', 'error');
-    return;
-  }
   
-  const siteData = siteDoc.data();
-  const siteUrl = siteData.siteUrl;
-  const siteId = siteData.siteId;
-
-  if (!siteUrl) {
-    showToast('رابط الموقع غير صحيح', 'error');
-    return;
-  }
-
-  showToast('⏳ جاري التحقق الفعلي من الموقع...', 'info');
-
-  try {
-    // إضافة طابع زمني لمنع التخزين المؤقت (Cache)
+try {
+    // استخدمنا corsproxy.io بدلاً من allorigins
+    // أضفنا طابع زمني عشوائي كـ Query Parameter لمنع الكاش
     const timestamp = new Date().getTime();
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(siteUrl)}&_t=${timestamp}`;
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(siteUrl + '?_t=' + timestamp)}`;
     
     const response = await fetch(proxyUrl);
-    const result = await response.json();
+    
+    // إذا كان الرد غير ناجح (مثلاً 404 أو 403 أو 500)
+    if (!response.ok) {
+      throw new Error(`خطأ في استجابة الخادم: ${response.status}`);
+    }
 
-    if (!result.contents) {
-      showToast('تعذر الوصول إلى الموقع. قد يكون الموقع محمياً.', 'error');
+    // جلب كود الـ HTML مباشرة (corsproxy يعيد النص مباشرة وليس داخل كائن JSON)
+    const html = await response.text();
+
+    if (!html) {
+      showToast('تعذر الوصول إلى محتوى الموقع.', 'error');
       return;
     }
 
-    const html = result.contents;
-
-    // البحث عن كود الـ Script بدلاً من הـ Meta
+    // البحث عن كود الـ Script
     const scriptRegex = new RegExp(`<script[^>]*data-site-id=["']${siteId}["'][^>]*>`, 'i');
     const isVerified = scriptRegex.test(html);
 
@@ -288,13 +272,15 @@ document.addEventListener('DOMContentLoaded', function() {
         status: 'failed',
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      showToast('❌ فشل التحقق. لم يتم العثور على الكود في مصدر الصفحة الرئيسية.', 'error');
+      showToast('❌ فشل التحقق. لم يتم العثور على الكود في الموقع.', 'error');
     }
 
     await loadWebsites(currentUser.uid);
 
   } catch (error) {
-    console.error('❌ خطأ في التحقق:', error);
+    // سيتم طباعة الخطأ الدقيق هنا في الكونسول لتسهيل حله
+    console.error('❌ تفاصيل خطأ الاتصال:', error); 
+    
     await db.collection('websites').doc(docId).update({
       verified: false,
       status: 'failed',
@@ -303,10 +289,11 @@ document.addEventListener('DOMContentLoaded', function() {
     showToast('❌ فشل التحقق بسبب مشكلة في الاتصال بالموقع.', 'error');
     await loadWebsites(currentUser.uid);
   }
-};
+  
   // ==========================================================
   // 8. دوال أخرى (حذف، كود، نسخ، Toast، القائمة الجانبية)
   // ==========================================================
+  
   window.deleteWebsite = async function(docId) {
     if (!confirm('⚠️ هل أنت متأكد من حذف هذا الموقع؟')) return;
     try {
