@@ -155,8 +155,12 @@ document.addEventListener('DOMContentLoaded', function() {
             <button class="btn-sm" onclick="window.toggleCode('${site.id}')"><i class="fas fa-code"></i> كود التوثيق</button>
             <button class="btn-sm" onclick="window.verifyWebsite('${site.id}')"><i class="fas fa-shield-alt"></i> تحقق</button>
             <button class="btn-sm danger" onclick="window.deleteWebsite('${site.id}')"><i class="fas fa-trash-alt"></i> حذف</button>
-          <div id="code-${site.id}" class="code-snippet" style="display:none; direction:ltr; text-align:left; padding:15px; background:#f8f9fa; border-radius:8px; margin-top:10px; border: 1px solid #eee;">
-            <p style="font-size:13px; color:#444; margin-bottom:10px; direction:rtl; text-align:right;"> انسخ هذا الكود وضعه داخل وسم <code>&lt;head&gt;</code> في موقعك: </p>
+         </div>
+<div id="code-${site.id}" class="code-snippet" style="display:none; direction:ltr; text-align:left; padding:15px; background:#f8f9fa; border-radius:8px; margin-top:10px; border: 1px solid #eee;">
+            <p style="font-size:13px; color:#444; margin-bottom:10px; direction:rtl; text-align:right;">
+              انسخ هذا الكود وضعه داخل وسم <code>&lt;head&gt;</code> في موقعك:
+            </p>
+            
             <code style="display:block; background:#e9ecef; padding:10px 12px; border-radius:6px; color:#07c; font-weight:bold; word-break:break-all; margin-bottom:15px;">
               ${encodedMetaTag}
             </code>
