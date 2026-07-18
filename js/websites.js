@@ -1,11 +1,11 @@
 /**
- * websites.js – إدارة المواقع (التحقق عبر Meta Tag + نظام حماية من فشل الاتصال)
- * الإصدار: 4.0.0
+ * websites.js – إدارة المواقع (نسخة معالجة كود النسخ والاتصال)
+ * الإصدار: 4.1.0
  */
 
 document.addEventListener('DOMContentLoaded', function() {
 
-  console.log('✅ websites.js loaded (v4.0.0 - Meta Tag Version)');
+  console.log('✅ websites.js loaded (v4.1.0)');
 
   // ==========================================================
   // عناصر الصفحة
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ==========================================================
-  // 4. عرض المواقع (تم التحويل إلى Meta Tag)
+  // 4. عرض المواقع (تم إصلاح تعارض السلاسل النصية هنا 🔥)
   // ==========================================================
   function renderWebsites() {
     if (!websitesContainer) return;
@@ -132,10 +132,11 @@ document.addEventListener('DOMContentLoaded', function() {
       const statusIcon = site.verified ? 'fa-check-circle' : (site.status === 'pending' ? 'fa-clock' : 'fa-times-circle');
       const siteId = site.siteId || site.id.substring(0, 8);
       
-      // كود الميتا تاج كـ HTML للنسخ
-      const metaTagCode = `<meta name="blogpush-verification" content="${siteId}" />`;
-      // نفس الكود مشفر للعرض في المتصفح
+      // الكود مشفر لـ العرض المرئي الآمن داخل وسم code
       const encodedMetaTag = `&lt;meta name="blogpush-verification" content="${siteId}" /&gt;`;
+      
+      // الكود مشفر بالكامل ليوضع داخل دالة onclick بأمان دون كسر الـ HTML
+      const metaTagToCopy = `&lt;meta name=&quot;blogpush-verification&quot; content=&quot;${siteId}&quot; /&gt;`;
 
       html += `
         <div class="website-card" data-id="${site.id}">
@@ -156,10 +157,12 @@ document.addEventListener('DOMContentLoaded', function() {
             <button class="btn-sm" onclick="window.verifyWebsite('${site.id}')"><i class="fas fa-shield-alt"></i> تحقق</button>
             <button class="btn-sm danger" onclick="window.deleteWebsite('${site.id}')"><i class="fas fa-trash-alt"></i> حذف</button>
           </div>
-          <div id="code-${site.id}" class="code-snippet" style="display:none; direction:ltr; text-align:left;">
-            <p style="font-size:12px; color:#666; margin-bottom:8px; direction:rtl; text-align:right;">انسخ هذا الكود وضعه داخل وسم <code>head</code> في موقعك:</p>
-            <code>${encodedMetaTag}</code>
-            <button class="copy-btn" onclick="window.copyToClipboard(this, '${metaTagCode.replace(/'/g, "\\'")}')" style="margin-top:10px;">نسخ الكود</button>
+          <div id="code-${site.id}" class="code-snippet" style="display:none; direction:ltr; text-align:left; padding:15px; background:#f8f9fa; border-radius:8px; margin-top:10px;">
+            <p style="font-size:12px; color:#666; margin-bottom:8px; direction:rtl; text-align:right;">انسخ هذا الكود وضعه داخل وسم <code>&lt;head&gt;</code> في موقعك:</p>
+            <code style="color:#07c; font-weight:bold; word-break:break-all;">${encodedMetaTag}</code>
+            <div style="direction:rtl; text-align:right;">
+              <button class="copy-btn" onclick="window.copyToClipboard(this, '${metaTagToCopy}')" style="margin-top:10px; padding:6px 15px; background:#1A1A2E; color:#fff; border:none; border-radius:6px; cursor:pointer;">نسخ الكود</button>
+            </div>
           </div>
         </div>
       `;
@@ -190,7 +193,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       urlError.classList.remove('show');
 
-      // تصحيح الرابط (إضافة https إذا لم تكن موجودة)
       if (!/^https?:\/\//i.test(url)) {
         url = 'https://' + url;
       }
@@ -237,36 +239,29 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ==========================================================
-  // 6. التحقق الفعلي من الموقع (الميتا تاج + الوكلاء المتعددين)
+  // 6. التحقق الفعلي من الموقع ونظام الحماية من فشل الاتصال
   // ==========================================================
-  
-  // دالة مساعدة لجلب الكود المصدري باستخدام أكثر من وكيل لتجنب الفشل
   async function fetchHTML(url) {
     const timestamp = new Date().getTime();
     
-    // قائمة الوكلاء (البروكسي) لضمان نجاح الاتصال
+    // محاولة استخدام خادمين مختلفين لتجنب قيود CORS والـ Cache
     const proxies = [
       `https://corsproxy.io/?${encodeURIComponent(url + '?_t=' + timestamp)}`,
       `https://api.allorigins.win/raw?url=${encodeURIComponent(url + '?_t=' + timestamp)}`
     ];
 
-    let lastError = null;
-
     for (const proxyUrl of proxies) {
       try {
         const response = await fetch(proxyUrl, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const text = await response.text();
-        if (text && text.length > 50) return text; // نجاح في جلب محتوى الموقع
+        if (text && text.length > 50) return text;
       } catch (error) {
-        lastError = error;
-        console.warn(`⚠️ فشل الوكيل ${proxyUrl} - جاري تجربة الوكيل التالي...`);
-        continue; // جرب الوكيل التالي
+        console.warn(`⚠️ فشل الاتصال عبر البروكسي: ${proxyUrl}. جاري تجربة البديل...`);
+        continue; 
       }
     }
-    
-    // إذا فشل جميع الوكلاء
-    throw new Error('جميع محاولات الاتصال بالموقع فشلت. قد يكون الموقع محمياً بجدار حماية (Cloudflare) أو الرابط غير صحيح.');
+    throw new Error('تعذر الوصول للموقع. تأكد من الرابط أو جدران الحماية (كـ Cloudflare)');
   }
 
   window.verifyWebsite = async function(docId) {
@@ -290,7 +285,6 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    // تأمين الـ Protocol للرابط
     if (!/^https?:\/\//i.test(siteUrl)) {
       siteUrl = 'https://' + siteUrl;
     }
@@ -298,10 +292,9 @@ document.addEventListener('DOMContentLoaded', function() {
     showToast('⏳ جاري الاتصال بالموقع للتحقق...', 'info');
 
     try {
-      // جلب محتوى الصفحة باستخدام دالة الوكلاء المتعددة
       const html = await fetchHTML(siteUrl);
 
-      // البحث عن الـ Meta Tag بصيغتيه المحتملتين
+      // تعبير نمطي مرن للبحث عن الميتا تاج بأي ترتيب للسمات
       const metaRegex = new RegExp(
         `<meta[^>]*name=["']blogpush-verification["'][^>]*content=["']${siteId}["'][^>]*>|<meta[^>]*content=["']${siteId}["'][^>]*name=["']blogpush-verification["'][^>]*>`, 
         'i'
@@ -322,19 +315,18 @@ document.addEventListener('DOMContentLoaded', function() {
           status: 'failed',
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        showToast('❌ فشل التحقق. لم نتمكن من العثور على الميتا تاج في الصفحة.', 'error');
+        showToast('❌ فشل التحقق. تأكد من إضافة الميتا تاج داخل الـ <head>.', 'error');
       }
 
       await loadWebsites(currentUser.uid);
 
     } catch (error) {
-      console.error('❌ خطأ تفصيلي:', error);
+      console.error('❌ خطأ في الاتصال:', error);
       await db.collection('websites').doc(docId).update({
         verified: false,
         status: 'failed',
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      // إظهار رسالة واضحة للمستخدم
       showToast('❌ فشل الاتصال: ' + error.message, 'error');
       await loadWebsites(currentUser.uid);
     }
@@ -416,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
       toast.style.opacity = '0';
       toast.style.transform = 'translateX(30px)';
       setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 350);
-    }, 4500); // زيادة وقت ظهور الإشعار ليتمكن المستخدم من قراءته
+    }, 4500);
   }
   window.showToast = showToast;
 
